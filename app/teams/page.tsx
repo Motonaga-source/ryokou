@@ -1,0 +1,239 @@
+'use client'
+type DragStartEvent = any;
+type DragEndEvent = any;
+import { useState, useEffect, useCallback } from 'react';
+
+
+const DndContext = ({children}: any) => <>{children}</>;
+const DragOverlay = ({children}: any) => <>{children}</>;
+const useDraggable = (args: any) => ({ attributes: {}, listeners: {}, setNodeRef: undefined, transform: {x:0, y:0, scaleX:1, scaleY:1} as any, isDragging: false });
+const useDroppable = (args: any) => ({ setNodeRef: undefined, isOver: false });
+const closestCenter = null;
+const MouseSensor = null;
+const TouchSensor = null;
+const useSensor = (...args: any[]) => null;
+const useSensors = (...args: any[]) => null;
+
+
+interface Person {
+  id: number
+  name: string
+  role: string
+  gender: string | null
+  participations?: any[]
+}
+
+interface TeamMember {
+  id: number
+  isLeader: boolean
+  person: Person
+}
+
+interface Team {
+  id: number
+  name: string
+  color: string | null
+  members: TeamMember[]
+}
+
+export default function AdminTeamsDnDPage() {
+  const [teams, setTeams] = useState<Team[]>([])
+  const [unassigned, setUnassigned] = useState<Person[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  
+  const COLORS = {
+    '青': 'bg-blue-100 border-blue-400',
+    '赤': 'bg-red-100 border-red-400',
+    '緑': 'bg-green-100 border-green-400',
+    '黄': 'bg-yellow-100 border-yellow-400',
+    '紫': 'bg-purple-100 border-purple-400',
+    'ピンク': 'bg-pink-100 border-pink-400',
+    'オレンジ': 'bg-orange-100 border-orange-400',
+  }
+
+  const fetchTeams = useCallback(async () => {
+    setLoading(true)
+    const res = await fetch('/api/teams?tripId=1')
+    const data = await res.json()
+    setTeams(data)
+
+    const resP = await fetch('/api/persons?tripId=1')
+    const persons: Person[] = await resP.json()
+    const participatingPersons = persons.filter(p => p.participations?.[0]?.status === '参加')
+    const assignedIds = new Set(data.flatMap((t: Team) => t.members.map((m: TeamMember) => m.person.id)))
+    setUnassigned(participatingPersons.filter(p => !assignedIds.has(p.id)))
+    
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchTeams() }, [fetchTeams])
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    // スマホでのスクロールとドラッグを両立させるために delay を追加
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+  )
+
+  const handleAssign = async (personId: number, teamId: number | null) => {
+    await fetch(`/api/teams/assign`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personId, teamId }),
+    })
+    await fetchTeams()
+  }
+
+  const onDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
+  }
+
+  const onDragEnd = (event: DragEndEvent) => {
+    setActiveId(null)
+    const { active, over } = event
+    if (!over) return
+
+    const personId = parseInt((active.id as string).replace('person-', ''))
+    const overId = over.id as string
+
+    if (overId.startsWith('unassigned')) {
+      handleAssign(personId, null)
+    } else if (overId.startsWith('team-')) {
+      const teamId = parseInt(overId.replace('team-', ''))
+      handleAssign(personId, teamId)
+    }
+  }
+
+  const getPerson = (id: string) => {
+    const pid = parseInt(id.replace('person-', ''))
+    let p = unassigned.find(p => p.id === pid)
+    if (p) return p
+    teams.forEach(t => {
+      const m = t.members.find(m => m.person.id === pid)
+      if (m) p = m.person
+    })
+    return p
+  }
+
+  const activePerson = activeId ? getPerson(activeId) : null
+
+  return (
+    <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      <div className="space-y-5">
+        <div className="pt-12 md:pt-0">
+          <h1 className="text-2xl font-bold text-gray-800">📋 チーム・配置 (DnD編集)</h1>
+          <p className="text-sm text-gray-500">長押しでドラッグ＆ドロップしてチームを編成します。</p>
+        </div>
+
+        {loading ? (
+           <div className="text-center py-10 text-gray-400">読み込み中...</div>
+        ) : (
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            
+            {/* 左カラム: 未割り当て（スタッフ） */}
+            <div className="w-full lg:w-56 shrink-0 order-2 lg:order-1">
+              <DroppableUnassigned persons={unassigned} role="STAFF" title="スタッフ" />
+            </div>
+
+            {/* 中央カラム: チームグリッド */}
+            <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 order-1 lg:order-2">
+              {teams.map(team => (
+                <DroppableTeam key={team.id} team={team} colorClass={COLORS[team.color as keyof typeof COLORS] || 'bg-gray-100 border-gray-400'} />
+              ))}
+            </div>
+
+            {/* 右カラム: 未割り当て（利用者） */}
+            <div className="w-full lg:w-56 shrink-0 order-3 lg:order-3">
+              <DroppableUnassigned persons={unassigned} role="USER" title="利用者" />
+            </div>
+
+          </div>
+        )}
+      </div>
+
+      <DragOverlay>
+        {activePerson ? <DraggablePerson person={activePerson} isOverlay /> : null}
+      </DragOverlay>
+    </DndContext>
+  )
+}
+
+function DroppableTeam({ team, colorClass }: { team: Team, colorClass: string }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `team-${team.id}` })
+  
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-2xl border-4 transition-colors overflow-hidden ${
+        isOver ? 'border-indigo-400 shadow-md opacity-80' : 'shadow-sm'
+      } ${colorClass}`}
+    >
+      <div className="px-4 py-3 md:py-2 font-bold text-lg text-gray-800 bg-white/50 border-b-2 border-black/10 flex justify-between items-center">
+        <span>{team.name}</span>
+        <span className="text-sm font-medium opacity-70">{team.members.length}名</span>
+      </div>
+      <div className="p-3 min-h-[140px] flex flex-wrap gap-2">
+        {team.members.map(m => (
+          <DraggablePerson key={m.person.id} person={m.person} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DroppableUnassigned({ persons, role, title }: { persons: Person[], role: string, title: string }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `unassigned-${role}` })
+  const filtered = persons.filter(p => p.role === role)
+  
+  return (
+    <div
+      ref={setNodeRef}
+      className={`bg-white rounded-2xl border-2 p-4 transition-colors ${
+        isOver ? 'border-red-400 bg-red-50 shadow-md' : 'border-gray-200 shadow-sm'
+      }`}
+      style={{ minHeight: '300px' }}
+    >
+      <h3 className="font-bold text-gray-800 mb-1">未割り当て ({title}) - {filtered.length}名</h3>
+      <p className="text-xs text-gray-500 mb-3">ここへドロップするとチームから外れます</p>
+      
+      {/* スマホ画面ではグリッド表示にしてスペースを有効活用 */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-1 gap-2 max-h-[400px] lg:max-h-[600px] overflow-y-auto pr-1">
+        {filtered.map(p => (
+          <DraggablePerson key={p.id} person={p} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DraggablePerson({ person, isOverlay = false }: { person: Person, isOverlay?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `person-${person.id}`,
+    data: person,
+  })
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`
+        px-2 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex items-center gap-1 bg-white w-full lg:w-auto min-h-[40px]
+        ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
+        ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50' : ''}
+      `}
+    >
+      <span className="text-[10px] md:text-xs">
+        {person.role === 'STAFF' ? '👨‍💼' : person.gender === '女' ? '👩' : '👨'}
+      </span>
+      <span className="font-semibold text-[10px] md:text-xs text-gray-800 whitespace-nowrap truncate">
+        {person.name}
+      </span>
+    </div>
+  )
+}

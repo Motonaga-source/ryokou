@@ -1,5 +1,4 @@
 'use client'
-export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -26,7 +25,6 @@ interface DashboardData {
 const quickLinks = [
   { href: '/vitals', label: 'バイタルチェック', icon: '💊', color: 'bg-red-50 border-red-200 text-red-700', desc: '血圧・体温を記録' },
   { href: '/rooms', label: '部屋割り管理', icon: '🏨', color: 'bg-blue-50 border-blue-200 text-blue-700', desc: '入居者の確認・変更' },
-  { href: '/bus', label: 'バス座席表', icon: '🚌', color: 'bg-teal-50 border-teal-200 text-teal-700', desc: '座席の確認' },
   { href: '/medications', label: '服薬情報', icon: '💉', color: 'bg-purple-50 border-purple-200 text-purple-700', desc: '投薬内容の確認' },
   { href: '/teams', label: 'チーム・配置', icon: '📋', color: 'bg-green-50 border-green-200 text-green-700', desc: 'チーム編成・入浴担当' },
   { href: '/schedule', label: 'スケジュール', icon: '🗓️', color: 'bg-yellow-50 border-yellow-200 text-yellow-700', desc: '当日の流れを確認' },

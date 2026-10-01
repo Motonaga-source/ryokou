@@ -1,0 +1,313 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===== 旅行イベント =====
+model Trip {
+  id          Int      @id @default(autoincrement())
+  name        String
+  destination String
+  startDate   DateTime
+  endDate     DateTime
+  notes       String?
+  travelFee   Int?
+  pocketMoney Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  participations     TripParticipation[]
+  rooms              Room[]
+  schedules          Schedule[]
+  supplyItems        SupplyItem[]
+  teams              Team[]
+  cars               Car[]
+  banquetSeats       BanquetSeatAssignment[]
+  lunchSeats         LunchSeatAssignment[]
+  busSeats           BusSeatAssignment[]
+  pocketMoneyRecords PocketMoneyRecord[]
+  bathingAssignments BathingAssignment[]
+}
+
+// ===== 人物（スタッフ・利用者共通） =====
+model Person {
+  id        Int      @id @default(autoincrement())
+  name      String
+  nameKana  String?
+  gender    String?
+  role      String   // "STAFF" | "USER"
+  isAdmin      Boolean  @default(false)
+  isWheelchair Boolean  @default(false)
+  password  String?
+  facility  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  medication         Medication?
+  participations     TripParticipation[]
+  roomAssignments    RoomAssignment[]
+  busAssignments     BusSeatAssignment[]
+  carAssignments     CarAssignment[]
+  teamMemberships    TeamMember[]
+  vitalRecords       VitalRecord[]
+  bathingAssignments BathingAssignment[]
+  banquetSeats       BanquetSeatAssignment[]
+  lunchSeats         LunchSeatAssignment[]
+  pocketMoneyRecord  PocketMoneyRecord?
+  carryItems         SupplyCarryAssignment[]
+}
+
+// ===== 服薬情報（利用人のみ） =====
+model Medication {
+  id             Int      @id @default(autoincrement())
+  personId       Int      @unique
+  hasBreakfast   Boolean  @default(false)
+  breakfastNote  String?
+  hasLunch       Boolean  @default(false)
+  lunchNote      String?
+  hasDinner      Boolean  @default(false)
+  dinnerNote     String?
+  hasSleep       Boolean  @default(false)
+  sleepNote      String?
+  hasAsNeeded    Boolean  @default(false)
+  asNeededNote   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+// ===== 旅行参加状況 =====
+model TripParticipation {
+  id           Int     @id @default(autoincrement())
+  tripId       Int
+  personId     Int
+  status       String  // "参加" | "不参加" | "保留"
+  feeMethod    String?
+  feeCollected Boolean @default(false)
+  notes        String?
+  gatherPlace  String?
+
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, personId])
+}
+
+// ===== 客室 =====
+model Room {
+  id         Int    @id @default(autoincrement())
+  tripId     Int
+  roomNumber String
+  floor      Int
+  roomType   String
+  capacity   Int
+  notes      String?
+
+  trip         Trip             @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  assignments  RoomAssignment[]
+  vitalRecords VitalRecord[]
+
+  @@unique([tripId, roomNumber])
+}
+
+// ===== 部屋割り =====
+model RoomAssignment {
+  id       Int     @id @default(autoincrement())
+  roomId   Int
+  personId Int
+  isStaff  Boolean @default(false)
+  notes    String?
+
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, personId])
+}
+
+// ===== バイタルチェック =====
+model VitalRecord {
+  id                Int      @id @default(autoincrement())
+  personId          Int
+  roomId            Int?
+  bloodPressureHigh Int?
+  bloodPressureLow  Int?
+  pulse             Int?
+  temperature       Float?
+  notes             String?
+  recordedAt        DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  room   Room?  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+// ===== チーム =====
+model Team {
+  id     Int     @id @default(autoincrement())
+  tripId Int
+  name   String
+  color  String?
+
+  trip    Trip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  members TeamMember[]
+}
+
+model TeamMember {
+  id       Int     @id @default(autoincrement())
+  teamId   Int
+  personId Int
+  isLeader Boolean @default(false)
+
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, personId])
+}
+
+// ===== 入浴担当 =====
+model BathingAssignment {
+  id       Int    @id @default(autoincrement())
+  tripId   Int
+  personId Int
+  category String
+  notes    String?
+
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, personId])
+}
+
+// ===== 宴会場席次 =====
+model BanquetSeatAssignment {
+  id       Int    @id @default(autoincrement())
+  tripId   Int
+  personId Int
+  pattern  String // "A" | "B"
+  tableNo  Int?
+  seatNo   Int?
+  notes    String?
+
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, personId, pattern])
+}
+
+// ===== ブルーメの丘昼食席次 =====
+model LunchSeatAssignment {
+  id       Int    @id @default(autoincrement())
+  tripId   Int
+  personId Int
+  tableNo  Int?
+  seatNo   Int?
+  notes    String?
+
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, personId])
+}
+
+// ===== バス座席 =====
+model BusSeatAssignment {
+  id       Int     @id @default(autoincrement())
+  tripId   Int
+  personId Int
+  rowNo    Int?
+  seatSide String?
+  seatType String?
+  vehicle  String?
+  notes    String?
+
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, personId])
+}
+
+// ===== 小遣い精算 =====
+model PocketMoneyRecord {
+  id        Int @id @default(autoincrement())
+  tripId    Int
+  personId  Int @unique
+  allocated Int
+  used      Int @default(0)
+  remaining Int @default(0)
+
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+// ===== スケジュール =====
+model Schedule {
+  id          Int    @id @default(autoincrement())
+  tripId      Int
+  timeLabel   String
+  location    String
+  description String?
+  assignedTo  String?
+  dayNo       Int    @default(1)
+  sortOrder   Int    @default(0)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+// ===== 持ち物 =====
+model SupplyItem {
+  id       Int     @id @default(autoincrement())
+  tripId   Int
+  itemName String
+  quantity String?
+  facility String?
+  category String?
+  notes    String?
+
+  trip         Trip                    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  carryPersons SupplyCarryAssignment[]
+}
+
+model SupplyCarryAssignment {
+  id           Int @id @default(autoincrement())
+  supplyItemId Int
+  personId     Int
+
+  supplyItem SupplyItem @relation(fields: [supplyItemId], references: [id], onDelete: Cascade)
+  person     Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([supplyItemId, personId])
+}
+// ===== ��p�� =====
+model Car {
+  id        Int      @id @default(autoincrement())
+  tripId    Int
+  name      String
+  capacity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip        Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  assignments CarAssignment[]
+}
+
+model CarAssignment {
+  id        Int      @id @default(autoincrement())
+  carId     Int
+  personId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  car    Car    @relation(fields: [carId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([carId, personId])
+}
