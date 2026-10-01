@@ -265,27 +265,27 @@ export default function AdminBusDnDPage() {
             {/* 中央カラム */}
             <div className="flex-1 w-full order-1 lg:order-2 flex justify-center">
               {activeTab === 'BUS' ? (
-                <div className="bg-gray-100 p-4 sm:p-6 rounded-[3rem] border-[6px] border-gray-700 shadow-2xl w-full max-w-2xl mx-auto flex flex-col relative">
+                <div className="bg-gray-100 p-4 sm:p-6 rounded-[3rem] border-[6px] border-gray-700 shadow-2xl w-full max-w-4xl mx-auto flex flex-col relative">
                   
-                  <div className="flex-1 space-y-3">
+                  <div className="flex-1 space-y-1 sm:space-y-2">
                   {busRows.map(row => (
-                    <div key={row} className="flex gap-2 items-stretch">
+                    <div key={row} className="flex gap-1 sm:gap-2 items-stretch">
                       <div className="w-6 flex items-center justify-center text-xs font-black text-gray-400 shrink-0">{row}</div>
                       {row === 12 ? (
-                        <div className="flex flex-1 gap-2">
+                        <div className="flex flex-1 gap-1 sm:gap-2">
                           {['A', 'B', 'C', 'D', 'E'].map(side => (
                             <DroppableSeat key={side} row={row} side={side} person={getSeatPerson(row, side)} />
                           ))}
                         </div>
                       ) : (
                         <>
-                          <div className="flex flex-1 gap-2">
+                          <div className="flex flex-1 gap-1 sm:gap-2">
                             {['A', 'B'].map(side => (
                               <DroppableSeat key={side} row={row} side={side} person={getSeatPerson(row, side)} />
                             ))}
                           </div>
                           <div className="w-8 shrink-0 bg-gray-200 rounded-full shadow-inner opacity-50" title="通路"></div>
-                          <div className="flex flex-1 gap-2">
+                          <div className="flex flex-1 gap-1 sm:gap-2">
                             {['C', 'D'].map(side => (
                               <DroppableSeat key={side} row={row} side={side} person={getSeatPerson(row, side)} />
                             ))}
@@ -407,7 +407,7 @@ function DroppableSeat({ row, side, person }: { row: number, side: string, perso
   return (
     <div
       ref={setNodeRef}
-      className={`relative flex-1 p-1 rounded-lg flex flex-col items-center justify-center min-h-[48px] transition-all
+      className={`relative flex-1 p-0.5 rounded-lg flex flex-col items-center justify-center min-h-[38px] md:min-h-[44px] transition-all
         ${seatBg} ${seatBorder}
       `}
     >
@@ -519,7 +519,7 @@ function DraggablePerson({ person, isOverlay = false, inSeat = false }: { person
         px-2 py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex items-center gap-1 w-full lg:w-auto
         ${colorClass}
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
-        ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50 min-h-[40px]' : 'min-h-[32px]'}
+        ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50 min-h-[36px] md:min-h-[40px]' : 'min-h-[32px]'}
       `}
     >
       <span className="text-[10px] shrink-0">
