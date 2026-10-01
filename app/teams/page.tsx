@@ -136,7 +136,7 @@ export default function AdminTeamsDnDPage() {
             </div>
 
             {/* 中央カラム: チームグリッド */}
-            <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4 order-1 lg:order-2">
+            <div className="flex-1 w-full grid grid-cols-1 gap-4 order-1 lg:order-2">
               {teams.map(team => (
                 <DroppableTeam key={team.id} team={team} colorClass={COLORS[team.color as keyof typeof COLORS] || 'bg-gray-100 border-gray-400'} />
               ))}
@@ -172,7 +172,7 @@ function DroppableTeam({ team, colorClass }: { team: Team, colorClass: string })
         <span>{team.name}</span>
         <span className="text-sm font-medium opacity-70">{team.members.length}名</span>
       </div>
-      <div className="min-h-[300px] p-4 sm:p-6 flex flex-wrap gap-2">
+      <div className="min-h-[400px] p-4 sm:p-6 flex flex-wrap gap-2">
         {team.members.map(m => (
           <DraggablePerson key={m.person.id} person={m.person} />
         ))}
@@ -223,7 +223,7 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
       {...listeners}
       {...attributes}
       className={`
-        px-3 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex flex-col md:flex-row md:items-center gap-1 bg-white w-full sm:w-[calc(50%-0.25rem)] lg:w-[calc(50%-0.25rem)] max-w-full min-h-[40px]
+        px-3 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex flex-col md:flex-row md:items-center gap-1 bg-white w-full sm:w-[calc(50%-0.25rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5rem)] max-w-full min-h-[40px]
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
         ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50' : ''}
       `}
