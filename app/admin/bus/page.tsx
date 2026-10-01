@@ -265,7 +265,7 @@ export default function AdminBusDnDPage() {
             {/* 中央カラム */}
             <div className="flex-1 w-full order-1 lg:order-2 flex justify-center">
               {activeTab === 'BUS' ? (
-                <div className="bg-gray-100 p-4 sm:p-6 rounded-[3rem] border-[6px] border-gray-700 shadow-2xl w-full max-w-4xl mx-auto flex flex-col relative">
+                <div className="bg-gray-100 p-4 sm:p-6 rounded-[3rem] border-[6px] border-gray-700 shadow-2xl w-full max-w-2xl mx-auto flex flex-col relative">
                   
                   <div className="flex-1 space-y-1 sm:space-y-2">
                   {busRows.map(row => (

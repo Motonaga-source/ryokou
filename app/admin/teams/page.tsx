@@ -211,7 +211,7 @@ export default function AdminTeamsDnDPage() {
             </div>
 
             {/* 中央カラム: チームグリッド */}
-            <div className="flex-1 w-full grid grid-cols-1 gap-4 order-1 lg:order-2">
+            <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 order-1 lg:order-2">
               {teams.map(team => (
                 <div key={team.id} className="relative group">
                   {editingTeamId === team.id ? (
@@ -298,7 +298,7 @@ function DroppableTeam({ team, colorClass }: { team: Team, colorClass: string })
           <span>{team.members.length}名</span>
         </div>
       </div>
-      <div className="min-h-[400px] p-4 sm:p-6 flex flex-wrap gap-2">
+      <div className="min-h-[300px] p-4 sm:p-6 flex flex-col gap-2">
         {team.members.map(m => (
           <DraggablePerson key={m.person.id} person={m.person} />
         ))}
@@ -361,7 +361,7 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
       {...listeners}
       {...attributes}
       className={`
-        px-3 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex flex-col md:flex-row md:items-center gap-1 w-full sm:w-[calc(50%-0.25rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5rem)] max-w-full min-h-[40px]
+        px-3 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none flex flex-row items-center justify-start gap-2 w-full min-h-[40px]
         ${bgClass}
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
         ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50' : ''}
