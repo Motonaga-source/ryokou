@@ -179,14 +179,14 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
       ref={setNodeRef}
       className={`
         flex items-center gap-3 p-2 rounded-xl border-2 shadow-sm touch-none
-        ${person.role === 'STAFF' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}
+        ${person.isWheelchair ? 'bg-pink-100 border-pink-400' : person.role === 'STAFF' ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-300'}
       `}
     >
       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 ${person.gender === '女' ? 'bg-pink-100' : 'bg-blue-100'}`}>
         {person.gender === '女' ? '👩' : '👨'}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm text-gray-800 truncate">{person.name}</div>
+        <div className="font-semibold text-sm text-gray-800 truncate">{person.isWheelchair && <span className="mr-1">♿</span>}{person.name}</div>
         {person.notes && (
           <div className="text-[10px] text-gray-500 truncate mt-0.5">⚠️ {person.notes}</div>
         )}
