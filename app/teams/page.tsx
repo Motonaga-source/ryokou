@@ -172,7 +172,7 @@ function DroppableTeam({ team, colorClass }: { team: Team, colorClass: string })
         <span>{team.name}</span>
         <span className="text-sm font-medium opacity-70">{team.members.length}名</span>
       </div>
-      <div className="p-3 min-h-[140px] flex flex-wrap gap-2">
+      <div className="min-h-[250px] md:min-h-[200px] p-4 sm:p-6 flex flex-wrap gap-2">
         {team.members.map(m => (
           <DraggablePerson key={m.person.id} person={m.person} />
         ))}
@@ -197,7 +197,7 @@ function DroppableUnassigned({ persons, role, title }: { persons: Person[], role
       <p className="text-xs text-gray-500 mb-3">ここへドロップするとチームから外れます</p>
       
       {/* スマホ画面ではグリッド表示にしてスペースを有効活用 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-1 gap-2 max-h-[400px] lg:max-h-[600px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-1 gap-3 max-h-[400px] lg:max-h-[600px] overflow-y-auto pr-1">
         {filtered.map(p => (
           <DraggablePerson key={p.id} person={p} />
         ))}
@@ -223,7 +223,7 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
       {...listeners}
       {...attributes}
       className={`
-        px-2 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex items-center gap-1 bg-white w-full lg:w-auto min-h-[40px]
+        px-3 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex flex-col md:flex-row md:items-center gap-1 bg-white w-full sm:w-[48%] lg:w-auto min-w-[140px] min-h-[40px]
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
         ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50' : ''}
       `}
@@ -231,7 +231,7 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
       <span className="text-[10px] md:text-xs">
         {person.role === 'STAFF' ? '👨‍💼' : person.gender === '女' ? '👩' : '👨'}
       </span>
-      <span className="font-semibold text-[10px] md:text-xs text-gray-800 whitespace-nowrap truncate">
+      <span className="font-semibold text-[10px] md:text-xs text-gray-800 break-words leading-tight">
         {person.name}
       </span>
     </div>
