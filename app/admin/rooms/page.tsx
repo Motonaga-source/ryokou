@@ -19,6 +19,7 @@ interface Person {
   id: number
   name: string
   gender: string | null
+  isWheelchair: boolean
   role: string
   notes: string | null
   participations?: Array<{ status: string }>
