@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   })
 
   // デフォルト参加処理
-  const initialStatus = status || (person.role === 'STAFF' ? '参加' : '保留')
+  const initialStatus = status || '参加'
   
   await prisma.tripParticipation.create({
     data: {

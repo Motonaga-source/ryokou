@@ -458,11 +458,11 @@ function DraggablePerson({ person, isOverlay = false, inSeat = false }: { person
           ${isDragging ? 'opacity-30' : 'opacity-100'}
         `}
       >
-        <div className="flex items-center gap-0.5">
+        <div className="flex flex-col items-center justify-center gap-0.5 text-center leading-tight break-words px-0.5">
           <span className="text-[10px] shrink-0">
             {person.role === 'STAFF' ? '👤' : person.isWheelchair ? '♿' : person.gender === '女' ? '👩' : '👨'}
           </span>
-          <span className="font-bold text-[10px] text-gray-800 whitespace-nowrap truncate w-full max-w-[40px]">
+          <span className="font-bold text-[10px] text-gray-800 break-words w-full">
             {person.name}
           </span>
         </div>
