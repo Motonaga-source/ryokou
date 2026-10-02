@@ -20,6 +20,7 @@ interface Person {
   name: string
   role: string
   gender: string | null
+  isWheelchair?: boolean
   participations?: any[]
 }
 
