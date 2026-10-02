@@ -5,7 +5,15 @@ import { decrypt } from '@/lib/auth'
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname
 
-  // /admin 以下のルートを保護（ログイン画面は除く）
+  // 1. サイト全体を保護
+  const isSiteAuthPath = path === '/login' || path === '/api/site-auth'
+  const hasSiteAuth = request.cookies.get('site-auth')?.value === 'true'
+
+  if (!hasSiteAuth && !isSiteAuthPath) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  // 2. /admin 以下のルートを保護（ログイン画面は除く）
   if (path.startsWith('/admin') && !path.startsWith('/admin/login')) {
     const sessionCookie = request.cookies.get('session')?.value
     let isValid = false
@@ -23,12 +31,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ルート("/") またはその他の一般ページへのアクセスで、すでにログイン済みの場合は /admin へ誘導することも可能だが、
-  // 今回は一般画面と管理画面の行き来を考慮し、強制リダイレクトはしないでおく。
-
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico).*)'],
 }
