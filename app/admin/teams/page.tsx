@@ -52,6 +52,31 @@ function getColorClass(color: string | null) {
   return COLOR_OPTIONS.find(c => c.value === color)?.cls ?? 'bg-gray-100 border-gray-400'
 }
 
+
+const sortTeamMembers = (members: TeamMember[]) => {
+  return [...members].sort((a, b) => {
+    const aStaff = a.person.role === 'STAFF' ? 1 : 0;
+    const bStaff = b.person.role === 'STAFF' ? 1 : 0;
+    if (aStaff !== bStaff) return bStaff - aStaff;
+    const aWheel = a.person.isWheelchair ? 1 : 0;
+    const bWheel = b.person.isWheelchair ? 1 : 0;
+    if (aWheel !== bWheel) return bWheel - aWheel;
+    return a.person.id - b.person.id;
+  });
+};
+
+const sortPersons = (persons: Person[]) => {
+  return [...persons].sort((a, b) => {
+    const aStaff = a.role === 'STAFF' ? 1 : 0;
+    const bStaff = b.role === 'STAFF' ? 1 : 0;
+    if (aStaff !== bStaff) return bStaff - aStaff;
+    const aWheel = a.isWheelchair ? 1 : 0;
+    const bWheel = b.isWheelchair ? 1 : 0;
+    if (aWheel !== bWheel) return bWheel - aWheel;
+    return a.id - b.id;
+  });
+};
+
 export default function AdminTeamsDnDPage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [unassigned, setUnassigned] = useState<Person[]>([])
@@ -67,14 +92,17 @@ export default function AdminTeamsDnDPage() {
   const fetchTeams = useCallback(async () => {
     setLoading(true)
     const res = await fetch('/api/teams?tripId=1')
-    const data = await res.json()
-    setTeams(data)
+    const data = await res.json();
+      data.forEach((t: any) => {
+        t.members = sortTeamMembers(t.members);
+      });
+      setTeams(data);
 
     const resP = await fetch('/api/persons?tripId=1')
     const persons: Person[] = await resP.json()
     const participatingPersons = persons.filter(p => p.participations?.[0]?.status === '参加')
     const assignedIds = new Set(data.flatMap((t: Team) => t.members.map((m: TeamMember) => m.person.id)))
-    setUnassigned(participatingPersons.filter(p => !assignedIds.has(p.id)))
+    setUnassigned(sortPersons(participatingPersons.filter(p => !assignedIds.has(p.id))))
     
     setLoading(false)
   }, [])
@@ -86,7 +114,34 @@ export default function AdminTeamsDnDPage() {
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   )
 
-  const handleAssign = async (personId: number, teamId: number | null) => {
+    const handleAssign = async (personId: number, teamId: number | null) => {
+    const person = getPerson(`person-${personId}`);
+    if (person) {
+      if (teamId === null) {
+        setTeams(prev => prev.map(t => ({
+          ...t,
+          members: t.members.filter(m => m.person.id !== personId)
+        })));
+        setUnassigned(prev => {
+          if (prev.some(p => p.id === personId)) return prev;
+          return sortPersons([...prev, person]);
+        });
+      } else {
+        setTeams(prev => prev.map(t => {
+          if (t.id === teamId) {
+            if (t.members.some(m => m.person.id === personId)) return t;
+            const newMembers = sortTeamMembers([...t.members, { id: Date.now(), isLeader: false, person }]);
+            return { ...t, members: newMembers };
+          }
+          if (t.members.some(m => m.person.id === personId)) {
+            return { ...t, members: t.members.filter(m => m.person.id !== personId) };
+          }
+          return t;
+        }));
+        setUnassigned(prev => prev.filter(p => p.id !== personId));
+      }
+    }
+
     await fetch('/api/teams/assign', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

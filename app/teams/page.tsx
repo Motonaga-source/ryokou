@@ -36,6 +36,31 @@ interface Team {
   members: TeamMember[]
 }
 
+
+const sortTeamMembers = (members: TeamMember[]) => {
+  return [...members].sort((a, b) => {
+    const aStaff = a.person.role === 'STAFF' ? 1 : 0;
+    const bStaff = b.person.role === 'STAFF' ? 1 : 0;
+    if (aStaff !== bStaff) return bStaff - aStaff;
+    const aWheel = a.person.isWheelchair ? 1 : 0;
+    const bWheel = b.person.isWheelchair ? 1 : 0;
+    if (aWheel !== bWheel) return bWheel - aWheel;
+    return a.person.id - b.person.id;
+  });
+};
+
+const sortPersons = (persons: Person[]) => {
+  return [...persons].sort((a, b) => {
+    const aStaff = a.role === 'STAFF' ? 1 : 0;
+    const bStaff = b.role === 'STAFF' ? 1 : 0;
+    if (aStaff !== bStaff) return bStaff - aStaff;
+    const aWheel = a.isWheelchair ? 1 : 0;
+    const bWheel = b.isWheelchair ? 1 : 0;
+    if (aWheel !== bWheel) return bWheel - aWheel;
+    return a.id - b.id;
+  });
+};
+
 export default function AdminTeamsDnDPage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [unassigned, setUnassigned] = useState<Person[]>([])
@@ -55,14 +80,17 @@ export default function AdminTeamsDnDPage() {
   const fetchTeams = useCallback(async () => {
     setLoading(true)
     const res = await fetch('/api/teams?tripId=1')
-    const data = await res.json()
-    setTeams(data)
+    const data = await res.json();
+      data.forEach((t: any) => {
+        t.members = sortTeamMembers(t.members);
+      });
+      setTeams(data);
 
     const resP = await fetch('/api/persons?tripId=1')
     const persons: Person[] = await resP.json()
     const participatingPersons = persons.filter(p => p.participations?.[0]?.status === '参加')
     const assignedIds = new Set(data.flatMap((t: Team) => t.members.map((m: TeamMember) => m.person.id)))
-    setUnassigned(participatingPersons.filter(p => !assignedIds.has(p.id)))
+    setUnassigned(sortPersons(participatingPersons.filter(p => !assignedIds.has(p.id))))
     
     setLoading(false)
   }, [])
