@@ -34,6 +34,31 @@ interface RoomWithUsers {
   assignments: Array<{ id: number; person: Person }>
 }
 
+
+const sortAssignments = (assignments: Array<{ id: number; person: Person }>) => {
+  return [...assignments].sort((a, b) => {
+    const aStaff = a.person.role === 'STAFF' ? 1 : 0;
+    const bStaff = b.person.role === 'STAFF' ? 1 : 0;
+    if (aStaff !== bStaff) return bStaff - aStaff;
+    const aWheel = a.person.isWheelchair ? 1 : 0;
+    const bWheel = b.person.isWheelchair ? 1 : 0;
+    if (aWheel !== bWheel) return bWheel - aWheel;
+    return a.person.id - b.person.id;
+  });
+};
+
+const sortPersons = (persons: Person[]) => {
+  return [...persons].sort((a, b) => {
+    const aStaff = a.role === 'STAFF' ? 1 : 0;
+    const bStaff = b.role === 'STAFF' ? 1 : 0;
+    if (aStaff !== bStaff) return bStaff - aStaff;
+    const aWheel = a.isWheelchair ? 1 : 0;
+    const bWheel = b.isWheelchair ? 1 : 0;
+    if (aWheel !== bWheel) return bWheel - aWheel;
+    return a.id - b.id;
+  });
+};
+
 export default function AdminRoomsDnDPage() {
   const [rooms, setRooms] = useState<RoomWithUsers[]>([])
   const [unassigned, setUnassigned] = useState<Person[]>([])
@@ -50,14 +75,15 @@ export default function AdminRoomsDnDPage() {
   const fetchRooms = useCallback(async () => {
     setLoading(true)
     const res = await fetch('/api/rooms?tripId=1')
-    const data = await res.json()
-    setRooms(data)
+    const data = await res.json();
+      data.forEach((r: any) => r.assignments = sortAssignments(r.assignments));
+      setRooms(data);
 
     const resP = await fetch('/api/persons?tripId=1')
     const persons: Person[] = await resP.json()
     const participatingPersons = persons.filter(p => p.participations?.[0]?.status === '参加')
     const assignedIds = new Set(data.flatMap((r: RoomWithUsers) => r.assignments.map(a => a.person.id)))
-    setUnassigned(participatingPersons.filter(p => !assignedIds.has(p.id)))
+    setUnassigned(sortPersons(participatingPersons.filter(p => !assignedIds.has(p.id))))
     
     setLoading(false)
   }, [])
@@ -70,6 +96,22 @@ export default function AdminRoomsDnDPage() {
   )
 
   const handleAssign = async (personId: number, roomId: number) => {
+    const person = getPerson(`person-${personId}`)
+    if (person) {
+      setRooms(prev => prev.map(r => {
+        if (r.id === roomId) {
+          if (r.assignments.some(a => a.person.id === personId)) return r;
+          const newAssignments = sortAssignments([...r.assignments, { id: Date.now(), person }]);
+          return { ...r, assignments: newAssignments };
+        }
+        if (r.assignments.some(a => a.person.id === personId)) {
+          return { ...r, assignments: r.assignments.filter(a => a.person.id !== personId) };
+        }
+        return r;
+      }));
+      setUnassigned(prev => prev.filter(p => p.id !== personId));
+    }
+
     await fetch(`/api/rooms/${roomId}/assign`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -81,6 +123,17 @@ export default function AdminRoomsDnDPage() {
   const handleUnassign = async (personId: number) => {
     const room = rooms.find(r => r.assignments.some(a => a.person.id === personId))
     if (room) {
+      const person = room.assignments.find(a => a.person.id === personId)?.person;
+      if (person) {
+        setRooms(prev => prev.map(r => {
+          if (r.id === room.id) {
+            return { ...r, assignments: r.assignments.filter(a => a.person.id !== personId) };
+          }
+          return r;
+        }));
+        setUnassigned(prev => sortPersons([...prev, person]));
+      }
+
       await fetch(`/api/rooms/${room.id}/assign`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

@@ -33,6 +33,31 @@ interface RoomWithUsers {
   assignments: Array<{ id: number; person: Person }>
 }
 
+
+const sortAssignments = (assignments: Array<{ id: number; person: Person }>) => {
+  return [...assignments].sort((a, b) => {
+    const aStaff = a.person.role === 'STAFF' ? 1 : 0;
+    const bStaff = b.person.role === 'STAFF' ? 1 : 0;
+    if (aStaff !== bStaff) return bStaff - aStaff;
+    const aWheel = a.person.isWheelchair ? 1 : 0;
+    const bWheel = b.person.isWheelchair ? 1 : 0;
+    if (aWheel !== bWheel) return bWheel - aWheel;
+    return a.person.id - b.person.id;
+  });
+};
+
+const sortPersons = (persons: Person[]) => {
+  return [...persons].sort((a, b) => {
+    const aStaff = a.role === 'STAFF' ? 1 : 0;
+    const bStaff = b.role === 'STAFF' ? 1 : 0;
+    if (aStaff !== bStaff) return bStaff - aStaff;
+    const aWheel = a.isWheelchair ? 1 : 0;
+    const bWheel = b.isWheelchair ? 1 : 0;
+    if (aWheel !== bWheel) return bWheel - aWheel;
+    return a.id - b.id;
+  });
+};
+
 export default function RoomsViewPage() {
   const [rooms, setRooms] = useState<RoomWithUsers[]>([])
   const [unassigned, setUnassigned] = useState<Person[]>([])
@@ -42,14 +67,15 @@ export default function RoomsViewPage() {
   const fetchRooms = useCallback(async () => {
     setLoading(true)
     const res = await fetch('/api/rooms?tripId=1')
-    const data = await res.json()
-    setRooms(data)
+    const data = await res.json();
+      data.forEach((r: any) => r.assignments = sortAssignments(r.assignments));
+      setRooms(data);
 
     const resP = await fetch('/api/persons?tripId=1')
     const persons: Person[] = await resP.json()
     const participatingPersons = persons.filter(p => p.participations?.[0]?.status === '参加')
     const assignedIds = new Set(data.flatMap((r: RoomWithUsers) => r.assignments.map(a => a.person.id)))
-    setUnassigned(participatingPersons.filter(p => !assignedIds.has(p.id)))
+    setUnassigned(sortPersons(participatingPersons.filter(p => !assignedIds.has(p.id))))
     
     setLoading(false)
   }, [])
