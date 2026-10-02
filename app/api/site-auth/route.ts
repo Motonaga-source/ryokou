@@ -7,7 +7,8 @@ export async function POST(request: Request) {
     const correctPassword = process.env.SITE_PASSWORD || '1022'
 
     if (password === correctPassword) {
-      cookies().set({
+      const cookieStore = await cookies()
+      cookieStore.set({
         name: 'site-auth',
         value: 'true',
         httpOnly: true,
@@ -23,6 +24,7 @@ export async function POST(request: Request) {
       { status: 401 }
     )
   } catch (error) {
+    console.error("Auth API Error:", error);
     return NextResponse.json(
       { error: 'エラーが発生しました' },
       { status: 500 }
