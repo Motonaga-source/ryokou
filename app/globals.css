@@ -1,1 +1,70 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm; /* Slightly smaller margin to fit more */
+  }
+  
+  html, body {
+    width: 210mm;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    /* Zoom out to fit content into a single page */
+    zoom: 0.65; 
+  }
+  
+  /* Firefox fallback for zoom */
+  @-moz-document url-prefix() {
+    body {
+      transform: scale(0.65);
+      transform-origin: top left;
+      width: 153%; /* 1 / 0.65 */
+    }
+  }
+
+  /* Reset scrollable areas so they expand instead of scrolling/clipping */
+  .overflow-y-auto {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  
+  /* Prevent large empty spaces or weird breaks */
+  main {
+    height: auto !important;
+    min-height: auto !important;
+  }
+
+  /* Force side-by-side flex layout for lg screens even on print */
+  .lg\:flex-row {
+    flex-direction: row !important;
+  }
+  .lg\:w-56 {
+    width: 14rem !important; /* 56 * 0.25rem = 14rem */
+  }
+  .lg\:w-80 {
+    width: 20rem !important; /* 80 * 0.25rem = 20rem */
+  }
+  
+  /* Force multiple columns on print for Teams/Rooms grids */
+  .xl\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  
+  /* Reduce huge minimum heights that waste space */
+  .min-h-\[300px\] {
+    min-height: 150px !important;
+  }
+  .min-h-\[400px\] {
+    min-height: 200px !important;
+  }
+
+  /* Avoid breaking inner boxes across pages */
+  .group {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
