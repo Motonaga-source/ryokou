@@ -236,50 +236,50 @@ function DroppableUnassigned({ persons, role, title }: { persons: Person[], role
 }
 
 function DraggablePerson({ person, isOverlay = false }: { person: Person, isOverlay?: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `person-${person.id}`,
-    data: person,
-  })
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined
-
-  // 色分けロジック: 車椅子 > スタッフ > 一般
-  const bgClass = person.isWheelchair
-    ? 'bg-pink-100 border-pink-400'
-    : person.role === 'STAFF'
-    ? 'bg-blue-100 border-blue-300'
-    : 'bg-white border-gray-300'
-
-  const icon = person.role === 'STAFF'
-    ? '👨‍💼'
-    : person.gender === '女'
-    ? '👩'
-    : '👨'
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className={`
-        px-3 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none flex flex-row items-center justify-start gap-2 w-full min-h-[40px]
-        ${bgClass}
-        ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
-        ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50' : ''}
-      `}
-    >
-      <span className="text-[10px] md:text-xs shrink-0">
-        {icon}
-      </span>
-      {person.isWheelchair && (
-        <span className="text-[10px] shrink-0">♿️</span>
-      )}
-      <span className="font-semibold text-[10px] md:text-xs text-gray-800 break-words whitespace-normal leading-tight">
-        {person.name}
-      </span>
-    </div>
-  )
-}
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+      id: `person-${person.id}`,
+      data: person,
+    })
+  
+    const style = transform ? {
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    } : undefined
+  
+    // 色分けロジック: 車椅子 > スタッフ > 一般
+    const bgClass = person.isWheelchair
+      ? 'bg-pink-100 border-pink-400'
+      : person.role === 'STAFF'
+      ? 'bg-blue-100 border-blue-300'
+      : 'bg-white border-gray-300'
+  
+    const icon = person.role === 'STAFF'
+      ? '👨‍💼'
+      : person.gender === '女'
+      ? '👩'
+      : '👨'
+  
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...listeners}
+        {...attributes}
+        className={`
+          flex items-center gap-2 p-2 w-full rounded-md border-2 shadow-sm cursor-grab touch-none transition-colors
+          ${bgClass}
+          ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
+          ${isOverlay ? 'shadow-2xl scale-105 rotate-2 cursor-grabbing z-50' : ''}
+        `}
+      >
+        <div className="flex items-center justify-center shrink-0 w-6 h-6 text-sm">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0 flex items-center gap-1 text-left">
+          {person.isWheelchair && <span className="shrink-0 text-sm">♿️</span>}
+          <span className="font-bold text-sm text-gray-800 truncate block">
+            {person.name}
+          </span>
+        </div>
+      </div>
+    )
+  }

@@ -364,37 +364,52 @@ function DroppableUnassigned({ persons, role, title }: { persons: Person[], role
 }
 
 function DraggablePerson({ person, isOverlay = false }: { person: Person, isOverlay?: boolean }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `person-${person.id}`,
-    data: person,
-  })
-
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-  } : undefined
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className={`
-        flex items-center gap-3 p-2 rounded-xl border-2 shadow-sm cursor-grab touch-none
-        ${person.isWheelchair ? 'bg-pink-100 border-pink-400' : person.role === 'STAFF' ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-300'}
-        ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
-        ${isOverlay ? 'shadow-xl scale-105 rotate-2 cursor-grabbing z-50 bg-white' : ''}
-      `}
-    >
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 ${person.gender === '女' ? 'bg-pink-100' : 'bg-blue-100'}`}>
-        {person.gender === '女' ? '👩' : '👨'}
+    const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+      id: `person-${person.id}`,
+      data: person,
+    })
+  
+    const style = transform ? {
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    } : undefined
+  
+    const bgClass = person.isWheelchair
+      ? 'bg-pink-100 border-pink-400'
+      : person.role === 'STAFF'
+      ? 'bg-blue-100 border-blue-300'
+      : 'bg-white border-gray-300'
+  
+    const icon = person.role === 'STAFF'
+      ? '👨‍💼'
+      : person.gender === '女'
+      ? '👩'
+      : '👨'
+  
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...listeners}
+        {...attributes}
+        className={`
+          flex items-center gap-2 p-2 w-full rounded-md border-2 shadow-sm cursor-grab touch-none transition-colors
+          ${bgClass}
+          ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
+          ${isOverlay ? 'shadow-2xl scale-105 rotate-2 cursor-grabbing z-50' : ''}
+        `}
+      >
+        <div className="flex items-center justify-center shrink-0 w-6 h-6 text-sm">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0 flex items-center gap-1 text-left">
+          {person.isWheelchair && <span className="shrink-0 text-sm">♿️</span>}
+          <span className="font-bold text-sm text-gray-800 truncate block">
+            {person.name}
+          </span>
+          {person.notes && (
+            <span className="text-[10px] text-gray-500 truncate ml-1">⚠️{person.notes}</span>
+          )}
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-sm text-gray-800 truncate">{person.isWheelchair && <span className="mr-1">♿</span>}{person.name}</div>
-        {person.notes && (
-          <div className="text-[10px] text-gray-500 truncate mt-0.5">⚠️ {person.notes}</div>
-        )}
-      </div>
-    </div>
-  )
-}
+    )
+  }
