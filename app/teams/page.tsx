@@ -245,6 +245,19 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
     transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
   } : undefined
 
+  // 色分けロジック: 車椅子 > スタッフ > 一般
+  const bgClass = person.isWheelchair
+    ? 'bg-pink-100 border-pink-400'
+    : person.role === 'STAFF'
+    ? 'bg-blue-100 border-blue-300'
+    : 'bg-white border-gray-300'
+
+  const icon = person.role === 'STAFF'
+    ? '👨‍💼'
+    : person.gender === '女'
+    ? '👩'
+    : '👨'
+
   return (
     <div
       ref={setNodeRef}
@@ -252,14 +265,18 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
       {...listeners}
       {...attributes}
       className={`
-        px-3 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex flex-col md:flex-row md:items-center gap-1 bg-white w-full sm:w-[calc(50%-0.25rem)] md:w-[calc(33.333%-0.5rem)] lg:w-[calc(25%-0.5rem)] max-w-full min-h-[40px]
+        px-3 py-2 md:py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none flex flex-row items-center justify-start gap-2 w-full min-h-[40px]
+        ${bgClass}
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
         ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50' : ''}
       `}
     >
-      <span className="text-[10px] md:text-xs">
-        {person.role === 'STAFF' ? '👨‍💼' : person.gender === '女' ? '👩' : '👨'}
+      <span className="text-[10px] md:text-xs shrink-0">
+        {icon}
       </span>
+      {person.isWheelchair && (
+        <span className="text-[10px] shrink-0">♿️</span>
+      )}
       <span className="font-semibold text-[10px] md:text-xs text-gray-800 break-words whitespace-normal leading-tight">
         {person.name}
       </span>
