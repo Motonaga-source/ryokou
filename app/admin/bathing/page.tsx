@@ -16,6 +16,7 @@ import {
 import BathingPersonCard from '@/components/BathingPersonCard'
 import {
   BATHING_ROLES,
+  BATH_BADGES,
   buildBathingBoard,
   isBathingRole,
   sortPersons,
@@ -138,8 +139,8 @@ export default function AdminBathingPage() {
               <DroppableUnassigned persons={unassigned} role="STAFF" title="スタッフ" />
             </div>
 
-            {/* 中央カラム: 入浴グループ */}
-            <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 order-1 lg:order-2">
+            {/* 中央カラム: 入浴グループ（男湯・女湯を左右に並べる） */}
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3 order-1 lg:order-2">
               {BATHING_ROLES.map(r => (
                 <DroppableGroup key={r.value} group={r} persons={groups[r.value]} />
               ))}
@@ -174,8 +175,15 @@ function DroppableGroup({ group, persons }: { group: (typeof BATHING_ROLES)[numb
       } ${group.colorClass}`}
     >
       <div className="px-4 py-3 md:py-2 bg-white/50 border-b-2 border-black/10">
-        <div className="font-bold text-lg text-gray-800 flex justify-between items-center gap-2">
-          <span className="min-w-0 truncate">{group.icon} {group.label}</span>
+        <div className="font-bold text-base text-gray-800 flex justify-between items-center gap-2">
+          <span className="min-w-0 flex items-center gap-1.5">
+            <span className="truncate">{group.icon} {group.baseLabel}</span>
+            {group.bath && (
+              <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-xs font-bold ${BATH_BADGES[group.bath].className}`}>
+                {BATH_BADGES[group.bath].label}
+              </span>
+            )}
+          </span>
           <div className="flex items-center gap-2 text-sm font-medium opacity-80 shrink-0">
             {wheelchairCount > 0 && (
               <span className="bg-pink-200 text-pink-800 px-1.5 py-0.5 rounded-full text-xs">
@@ -187,7 +195,7 @@ function DroppableGroup({ group, persons }: { group: (typeof BATHING_ROLES)[numb
         </div>
         <p className="text-xs text-gray-600">{group.description}（スタッフ{staffCount}名）</p>
       </div>
-      <div className="min-h-[200px] p-4 flex flex-col gap-2">
+      <div className="min-h-[140px] p-3 flex flex-col gap-2">
         {persons.map(p => (
           <DraggablePerson key={p.id} person={p} />
         ))}

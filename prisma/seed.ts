@@ -421,7 +421,8 @@ async function main() {
 
   // 旧区分 → 入浴管理の役割（判別できない区分は未割り当て）
   const toBathingRole = (category: string) =>
-    category.startsWith('介助_') ? 'MAIN_BATH' as const
+    category === '介助_男' ? 'MAIN_BATH_MALE' as const
+    : category === '介助_女' ? 'MAIN_BATH_FEMALE' as const
     : category.startsWith('自立_') ? 'INDEPENDENT' as const
     : category === '部屋風呂' ? 'ROOM_BATH' as const
     : null

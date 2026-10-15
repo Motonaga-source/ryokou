@@ -176,11 +176,14 @@ model TeamMember {
 
 // ===== 入浴担当 =====
 enum BathingRole {
-  MAIN_BATH        // 大浴場（介助入浴）
-  DRESSING_SUPPORT // 脱衣所サポート
-  ESCORT           // 送迎・誘導
-  ROOM_BATH        // 部屋風呂
-  INDEPENDENT      // 自立入浴
+  MAIN_BATH_MALE          // 大浴場（男湯）
+  MAIN_BATH_FEMALE        // 大浴場（女湯）
+  DRESSING_SUPPORT_MALE   // 脱衣所サポート（男湯）
+  DRESSING_SUPPORT_FEMALE // 脱衣所サポート（女湯）
+  ESCORT_MALE             // 送迎・誘導（男湯）
+  ESCORT_FEMALE           // 送迎・誘導（女湯）
+  ROOM_BATH               // 部屋風呂
+  INDEPENDENT             // 自立入浴
 }
 
 model BathingAssignment {

@@ -1,22 +1,55 @@
 // 入浴管理の役割（グループ）定義。prisma/schema.prisma の BathingRole と同期させること
 export const BATHING_ROLES = [
   {
-    value: 'MAIN_BATH',
-    label: '大浴場（介助入浴）',
+    value: 'MAIN_BATH_MALE',
+    label: '大浴場（男湯）',
+    baseLabel: '大浴場',
+    bath: 'MALE',
     icon: '♨️',
     description: '大浴場に入浴する利用者と入浴介助スタッフ',
     colorClass: 'bg-sky-100 border-sky-400',
   },
   {
-    value: 'DRESSING_SUPPORT',
-    label: '脱衣所サポート',
+    value: 'MAIN_BATH_FEMALE',
+    label: '大浴場（女湯）',
+    baseLabel: '大浴場',
+    bath: 'FEMALE',
+    icon: '♨️',
+    description: '大浴場に入浴する利用者と入浴介助スタッフ',
+    colorClass: 'bg-sky-100 border-sky-400',
+  },
+  {
+    value: 'DRESSING_SUPPORT_MALE',
+    label: '脱衣所サポート（男湯）',
+    baseLabel: '脱衣所サポート',
+    bath: 'MALE',
     icon: '👕',
     description: '衣類の着脱・バイタル測定をするスタッフ',
     colorClass: 'bg-green-100 border-green-400',
   },
   {
-    value: 'ESCORT',
-    label: '送迎・誘導',
+    value: 'DRESSING_SUPPORT_FEMALE',
+    label: '脱衣所サポート（女湯）',
+    baseLabel: '脱衣所サポート',
+    bath: 'FEMALE',
+    icon: '👕',
+    description: '衣類の着脱・バイタル測定をするスタッフ',
+    colorClass: 'bg-green-100 border-green-400',
+  },
+  {
+    value: 'ESCORT_MALE',
+    label: '送迎・誘導（男湯）',
+    baseLabel: '送迎・誘導',
+    bath: 'MALE',
+    icon: '🚶',
+    description: '入浴前後のお部屋と浴場への送迎スタッフ',
+    colorClass: 'bg-yellow-100 border-yellow-400',
+  },
+  {
+    value: 'ESCORT_FEMALE',
+    label: '送迎・誘導（女湯）',
+    baseLabel: '送迎・誘導',
+    bath: 'FEMALE',
     icon: '🚶',
     description: '入浴前後のお部屋と浴場への送迎スタッフ',
     colorClass: 'bg-yellow-100 border-yellow-400',
@@ -24,6 +57,8 @@ export const BATHING_ROLES = [
   {
     value: 'ROOM_BATH',
     label: '部屋風呂',
+    baseLabel: '部屋風呂',
+    bath: null,
     icon: '🛁',
     description: 'お部屋のお風呂に入る利用者',
     colorClass: 'bg-purple-100 border-purple-400',
@@ -31,11 +66,21 @@ export const BATHING_ROLES = [
   {
     value: 'INDEPENDENT',
     label: '自立入浴',
+    baseLabel: '自立入浴',
+    bath: null,
     icon: '🧼',
     description: '介助なしで入浴できる利用者',
     colorClass: 'bg-orange-100 border-orange-400',
   },
 ] as const
+
+export type BathingRoleDef = (typeof BATHING_ROLES)[number]
+
+// 男湯・女湯の区別バッジ（男女別でない役割は null）
+export const BATH_BADGES = {
+  MALE: { label: '男湯', className: 'bg-blue-600 text-white' },
+  FEMALE: { label: '女湯', className: 'bg-rose-500 text-white' },
+} as const
 
 export type BathingRoleValue = (typeof BATHING_ROLES)[number]['value']
 
