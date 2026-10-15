@@ -187,12 +187,13 @@ enum BathingRole {
 }
 
 model BathingAssignment {
-  id       Int          @id @default(autoincrement())
-  tripId   Int
-  personId Int
-  role     BathingRole?
-  category String?      // 旧区分（例: "介助_女"）。互換のため保持
-  notes    String?
+  id        Int          @id @default(autoincrement())
+  tripId    Int
+  personId  Int
+  role      BathingRole?
+  banNumber Int?         // 入浴の班（1〜3班、未設定は null）
+  category  String?      // 旧区分（例: "介助_女"）。互換のため保持
+  notes     String?
 
   trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)

@@ -88,18 +88,30 @@ export function isBathingRole(value: unknown): value is BathingRoleValue {
   return BATHING_ROLES.some(r => r.value === value)
 }
 
+// 入浴の班（大浴場などに一度に全員を案内できないため分ける）
+export const BAN_NUMBERS = [1, 2, 3] as const
+export type BanNumber = (typeof BAN_NUMBERS)[number]
+
+export function isBanNumber(value: unknown): value is BanNumber {
+  return BAN_NUMBERS.some(n => n === value)
+}
+
 export interface BathingPerson {
   id: number
   name: string
   role: string
   gender: string | null
   isWheelchair?: boolean
+  banNumber?: number | null
   participations?: { status: string }[]
 }
 
-// 並び順: スタッフ → 車椅子 → 一般（teams / rooms と同じロジック）
+// 並び順: 班（1班 → 2班 → 3班 → 未設定）→ スタッフ → 車椅子 → 一般
 export function sortPersons<T extends BathingPerson>(persons: T[]): T[] {
   return [...persons].sort((a, b) => {
+    const aBan = a.banNumber ?? Infinity
+    const bBan = b.banNumber ?? Infinity
+    if (aBan !== bBan) return aBan - bBan
     const aStaff = a.role === 'STAFF' ? 1 : 0
     const bStaff = b.role === 'STAFF' ? 1 : 0
     if (aStaff !== bStaff) return bStaff - aStaff
@@ -115,17 +127,18 @@ export type BathingBoard = Record<BathingRoleValue, BathingPerson[]>
 // 参加者一覧と割り当て一覧から、役割ごとの人員と未割り当て人員を組み立てる
 export function buildBathingBoard(
   persons: BathingPerson[],
-  assignments: { personId: number; role: string | null }[],
+  assignments: { personId: number; role: string | null; banNumber?: number | null }[],
 ): { groups: BathingBoard; unassigned: BathingPerson[] } {
-  const roleByPerson = new Map(assignments.map(a => [a.personId, a.role]))
+  const assignmentByPerson = new Map(assignments.map(a => [a.personId, a]))
   const groups = Object.fromEntries(BATHING_ROLES.map(r => [r.value, []])) as unknown as BathingBoard
   const unassigned: BathingPerson[] = []
 
   for (const p of persons) {
     if (p.participations?.[0]?.status !== '参加') continue
-    const role = roleByPerson.get(p.id)
-    if (isBathingRole(role)) groups[role].push(p)
-    else unassigned.push(p)
+    const assignment = assignmentByPerson.get(p.id)
+    const role = assignment?.role
+    if (isBathingRole(role)) groups[role].push({ ...p, banNumber: assignment?.banNumber ?? null })
+    else unassigned.push({ ...p, banNumber: null })
   }
 
   for (const r of BATHING_ROLES) groups[r.value] = sortPersons(groups[r.value])

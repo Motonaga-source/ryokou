@@ -1,5 +1,15 @@
-import { forwardRef, type HTMLAttributes } from 'react'
-import type { BathingPerson } from '@/lib/bathing'
+import { forwardRef, type HTMLAttributes, type SyntheticEvent } from 'react'
+import { BAN_NUMBERS, type BanNumber, type BathingPerson } from '@/lib/bathing'
+
+// 班ごとの色（選択中のボタン・閲覧用ラベル）
+const BAN_STYLES: Record<BanNumber, string> = {
+  1: 'bg-indigo-600 text-white border-indigo-600',
+  2: 'bg-emerald-600 text-white border-emerald-600',
+  3: 'bg-amber-500 text-white border-amber-500',
+}
+
+// ボタン操作がカードのドラッグ開始として扱われないようにする
+const stopDrag = (e: SyntheticEvent) => e.stopPropagation()
 
 // 人員カード（teams / rooms と同じ配色・アイコン・レイアウト）
 type Props = HTMLAttributes<HTMLDivElement> & {
@@ -7,10 +17,16 @@ type Props = HTMLAttributes<HTMLDivElement> & {
   draggable?: boolean
   isDragging?: boolean
   isOverlay?: boolean
+  // 班の表示: 'edit' = 切り替えボタン（管理画面）、'label' = 閲覧用ラベル、未指定 = 非表示
+  banMode?: 'edit' | 'label'
+  onBanChange?: (banNumber: BanNumber | null) => void
 }
 
 const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPersonCard(
-  { person, draggable = false, isDragging = false, isOverlay = false, className = '', ...rest },
+  {
+    person, draggable = false, isDragging = false, isOverlay = false,
+    banMode, onBanChange, className = '', ...rest
+  },
   ref,
 ) {
   // 色分けロジック: 車椅子 > スタッフ > 一般
@@ -48,6 +64,40 @@ const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPers
           {person.name}
         </span>
       </div>
+      {banMode === 'edit' && (
+        <div className="shrink-0 flex items-center gap-0.5" role="group" aria-label="班">
+          {BAN_NUMBERS.map(n => {
+            const active = person.banNumber === n
+            return (
+              <button
+                key={n}
+                type="button"
+                aria-label={`${n}班`}
+                aria-pressed={active}
+                title={active ? `${n}班（タップで解除）` : `${n}班に設定`}
+                onMouseDown={stopDrag}
+                onTouchStart={stopDrag}
+                onPointerDown={stopDrag}
+                onKeyDown={stopDrag}
+                onClick={e => {
+                  e.stopPropagation()
+                  onBanChange?.(active ? null : n)
+                }}
+                className={`w-6 h-6 rounded border text-[11px] font-bold leading-none transition-colors ${
+                  active ? BAN_STYLES[n] : 'bg-white/80 text-gray-500 border-gray-300 hover:bg-gray-100'
+                }`}
+              >
+                {n}
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {banMode === 'label' && person.banNumber && BAN_STYLES[person.banNumber as BanNumber] && (
+        <span className={`shrink-0 px-1.5 py-0.5 rounded border text-[11px] font-bold leading-none ${BAN_STYLES[person.banNumber as BanNumber]}`}>
+          {person.banNumber}班
+        </span>
+      )}
     </div>
   )
 })

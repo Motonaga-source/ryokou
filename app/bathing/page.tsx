@@ -90,7 +90,7 @@ function GroupCard({ group, persons }: { group: (typeof BATHING_ROLES)[number], 
       </div>
       <div className="min-h-[140px] p-3 flex flex-col gap-2">
         {persons.map(p => (
-          <BathingPersonCard key={p.id} person={p} />
+          <BathingPersonCard key={p.id} person={p} banMode="label" />
         ))}
       </div>
     </div>

@@ -20,6 +20,7 @@ import {
   buildBathingBoard,
   isBathingRole,
   sortPersons,
+  type BanNumber,
   type BathingBoard,
   type BathingPerson,
   type BathingRoleValue,
@@ -79,7 +80,7 @@ export default function AdminBathingPage() {
     ) as BathingBoard
     const restUnassigned = unassigned.filter(p => p.id !== personId)
     setGroups(nextGroups)
-    setUnassigned(role === null ? sortPersons([...restUnassigned, person]) : restUnassigned)
+    setUnassigned(role === null ? sortPersons([...restUnassigned, { ...person, banNumber: null }]) : restUnassigned)
 
     const res = await fetch('/api/bathing/assign', {
       method: 'PUT',
@@ -89,6 +90,32 @@ export default function AdminBathingPage() {
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       setError(data.error || '保存に失敗しました')
+    } else {
+      setError(null)
+    }
+    await fetchBoard()
+  }
+
+  const handleBanChange = async (personId: number, banNumber: BanNumber | null) => {
+    if (!groups) return
+
+    // Optimistic UI: 班を書き換えて枠内を並べ直す
+    setGroups(Object.fromEntries(
+      BATHING_ROLES.map(r => {
+        const list = groups[r.value]
+        if (!list.some(p => p.id === personId)) return [r.value, list]
+        return [r.value, sortPersons(list.map(p => (p.id === personId ? { ...p, banNumber } : p)))]
+      })
+    ) as BathingBoard)
+
+    const res = await fetch('/api/bathing/assign', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tripId: 1, personId, banNumber }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error || '班の保存に失敗しました')
     } else {
       setError(null)
     }
@@ -142,7 +169,7 @@ export default function AdminBathingPage() {
             {/* 中央カラム: 入浴グループ（男湯・女湯を左右に並べる） */}
             <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3 order-1 lg:order-2">
               {BATHING_ROLES.map(r => (
-                <DroppableGroup key={r.value} group={r} persons={groups[r.value]} />
+                <DroppableGroup key={r.value} group={r} persons={groups[r.value]} onBanChange={handleBanChange} />
               ))}
             </div>
 
@@ -156,13 +183,17 @@ export default function AdminBathingPage() {
       </div>
 
       <DragOverlay>
-        {activePerson ? <BathingPersonCard person={activePerson} draggable isOverlay /> : null}
+        {activePerson ? <BathingPersonCard person={activePerson} draggable isOverlay banMode="label" /> : null}
       </DragOverlay>
     </DndContext>
   )
 }
 
-function DroppableGroup({ group, persons }: { group: (typeof BATHING_ROLES)[number], persons: BathingPerson[] }) {
+function DroppableGroup({ group, persons, onBanChange }: {
+  group: (typeof BATHING_ROLES)[number]
+  persons: BathingPerson[]
+  onBanChange: (personId: number, banNumber: BanNumber | null) => void
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: `bathing-${group.value}` })
   const wheelchairCount = persons.filter(p => p.isWheelchair).length
   const staffCount = persons.filter(p => p.role === 'STAFF').length
@@ -197,7 +228,7 @@ function DroppableGroup({ group, persons }: { group: (typeof BATHING_ROLES)[numb
       </div>
       <div className="min-h-[140px] p-3 flex flex-col gap-2">
         {persons.map(p => (
-          <DraggablePerson key={p.id} person={p} />
+          <DraggablePerson key={p.id} person={p} onBanChange={ban => onBanChange(p.id, ban)} />
         ))}
       </div>
     </div>
@@ -228,7 +259,11 @@ function DroppableUnassigned({ persons, role, title }: { persons: BathingPerson[
   )
 }
 
-function DraggablePerson({ person }: { person: BathingPerson }) {
+// onBanChange を渡した場合（役割の枠内）のみ班の切り替えボタンを表示する
+function DraggablePerson({ person, onBanChange }: {
+  person: BathingPerson
+  onBanChange?: (banNumber: BanNumber | null) => void
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `person-${person.id}`,
     data: person,
@@ -247,6 +282,8 @@ function DraggablePerson({ person }: { person: BathingPerson }) {
       person={person}
       draggable
       isDragging={isDragging}
+      banMode={onBanChange ? 'edit' : undefined}
+      onBanChange={onBanChange}
     />
   )
 }
