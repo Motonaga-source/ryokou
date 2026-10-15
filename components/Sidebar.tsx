@@ -12,6 +12,7 @@ const navItems = [
   { href: '/vitals', label: 'バイタルチェック', icon: '💊' },
   { href: '/medications', label: '服薬情報管理', icon: '💉' },
   { href: '/teams', label: 'チーム・配置', icon: '📋' },
+  { href: '/bathing', label: '入浴管理', icon: '♨️' },
   { href: '/schedule', label: 'スケジュール', icon: '🗓️' },
   { href: '/pocket-money', label: '小遣い精算', icon: '💴' },
 ]

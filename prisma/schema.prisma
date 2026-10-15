@@ -175,11 +175,20 @@ model TeamMember {
 }
 
 // ===== 入浴担当 =====
+enum BathingRole {
+  MAIN_BATH        // 大浴場（介助入浴）
+  DRESSING_SUPPORT // 脱衣所サポート
+  ESCORT           // 送迎・誘導
+  ROOM_BATH        // 部屋風呂
+  INDEPENDENT      // 自立入浴
+}
+
 model BathingAssignment {
-  id       Int    @id @default(autoincrement())
+  id       Int          @id @default(autoincrement())
   tripId   Int
   personId Int
-  category String
+  role     BathingRole?
+  category String?      // 旧区分（例: "介助_女"）。互換のため保持
   notes    String?
 
   trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)

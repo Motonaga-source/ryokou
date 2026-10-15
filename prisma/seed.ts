@@ -419,13 +419,20 @@ async function main() {
     { name: '玉井　純治', category: '部屋風呂' },
   ]
 
+  // 旧区分 → 入浴管理の役割（判別できない区分は未割り当て）
+  const toBathingRole = (category: string) =>
+    category.startsWith('介助_') ? 'MAIN_BATH' as const
+    : category.startsWith('自立_') ? 'INDEPENDENT' as const
+    : category === '部屋風呂' ? 'ROOM_BATH' as const
+    : null
+
   let bathCount = 0
   for (const b of bathingData) {
     const person = allPersons.find((p) => p.name.trim() === b.name.trim())
     if (!person) continue
     try {
       await prisma.bathingAssignment.create({
-        data: { tripId: trip.id, personId: person.id, category: b.category },
+        data: { tripId: trip.id, personId: person.id, category: b.category, role: toBathingRole(b.category) },
       })
       bathCount++
     } catch {
