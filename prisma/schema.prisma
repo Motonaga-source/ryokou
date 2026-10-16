@@ -35,6 +35,7 @@ model Trip {
   busSeats           BusSeatAssignment[]
   pocketMoneyRecords PocketMoneyRecord[]
   bathingAssignments BathingAssignment[]
+  pickupAssignments  PickupAssignment[]
 }
 
 // ===== 人物（スタッフ・利用者共通） =====
@@ -49,6 +50,7 @@ model Person {
   wheelchairSource   String?  // 車椅子の出所: "グレイス貸出" | "持参"
   wheelchairPrepared Boolean  @default(false) // 未使用（旧: 持ち物チェックの準備済み）
   isFishNG     Boolean  @default(false) // 魚料理NG
+  pickupMemo   String?  // 集合・送迎の特記事項
   password  String?
   facility  String?
   notes     String?
@@ -67,6 +69,7 @@ model Person {
   lunchSeats         LunchSeatAssignment[]
   pocketMoneyRecord  PocketMoneyRecord?
   carryItems         SupplyCarryAssignment[]
+  pickupAssignments  PickupAssignment[]
 }
 
 // ===== 服薬情報（利用人のみ） =====
@@ -197,6 +200,26 @@ model BathingAssignment {
   banNumber Int?         // 入浴の班（1〜3班、未設定は null）
   category  String?      // 旧区分（例: "介助_女"）。互換のため保持
   notes     String?
+
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, personId])
+}
+
+// ===== 集合・送迎 =====
+// 送迎車（id 1〜4 の4台）。名称と定員は管理画面から変更できる
+model PickupVehicle {
+  id       Int    @id
+  name     String
+  capacity Int
+}
+
+model PickupAssignment {
+  id       Int    @id @default(autoincrement())
+  tripId   Int
+  personId Int
+  groupId  String // "walk" | "station" | "family" | "car-1"〜"car-4"（lib/pickup.ts を参照）
 
   trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { withSortOrder } from './schedule-data'
 import { SUPPLY_DATA } from './supply-data'
+import { DEFAULT_PICKUP_VEHICLES } from '../lib/pickup'
 
 const prisma = new PrismaClient()
 
@@ -477,6 +478,12 @@ async function main() {
   // ===== 11. SupplyItems（持ち物）=====
   await prisma.supplyItem.createMany({ data: SUPPLY_DATA.map((s) => ({ tripId: trip.id, ...s })) })
   console.log(`✅ 持ち物 ${SUPPLY_DATA.length}件作成`)
+
+  // ===== 12. PickupVehicle（送迎車）=====
+  for (const v of DEFAULT_PICKUP_VEHICLES) {
+    await prisma.pickupVehicle.upsert({ where: { id: v.id }, create: v, update: {} })
+  }
+  console.log(`✅ 送迎車 ${DEFAULT_PICKUP_VEHICLES.length}台作成`)
 
   console.log('\n🎉 全シードデータ投入完了！')
   console.log(`  Trip: 1件`)

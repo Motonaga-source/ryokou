@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       notes: personData.notes,
       isWheelchair: personData.isWheelchair || false,
       isFishNG: personData.isFishNG || false,
+      pickupMemo: String(personData.pickupMemo ?? '').trim() || null,
     } 
   })
 

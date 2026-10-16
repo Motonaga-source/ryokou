@@ -13,7 +13,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import BanquetPersonCard from '@/components/BanquetPersonCard'
+import PersonCard from '@/components/PersonCard'
 import FishNGBadge from '@/components/FishNGBadge'
 import { sortPersons } from '@/lib/bathing'
 import {
@@ -164,7 +164,7 @@ export default function BanquetBoard({ editable = false }: { editable?: boolean 
       </div>
 
       <DragOverlay>
-        {activePerson ? <BanquetPersonCard person={activePerson} draggable isOverlay /> : null}
+        {activePerson ? <PersonCard person={activePerson} draggable isOverlay /> : null}
       </DragOverlay>
     </DndContext>
   )
@@ -236,7 +236,7 @@ function DraggablePerson({ person, editable, compact = false }: {
   const style = transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined
 
   return (
-    <BanquetPersonCard
+    <PersonCard
       ref={setNodeRef}
       style={style}
       {...(editable ? { ...listeners, ...attributes } : {})}

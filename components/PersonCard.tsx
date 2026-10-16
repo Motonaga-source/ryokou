@@ -1,19 +1,29 @@
 import { forwardRef, type HTMLAttributes } from 'react'
 import FishNGBadge from '@/components/FishNGBadge'
-import type { BanquetPerson } from '@/lib/banquet'
 
-// 宴会席次の人員カード（teams / rooms / bathing と同じ配色・アイコン）
+export interface CardPerson {
+  id: number
+  name: string
+  role: string
+  gender: string | null
+  isWheelchair?: boolean
+  isFishNG?: boolean
+}
+
+// 人員カード（teams / rooms / bathing と同じ配色・アイコン）。宴会席次・集合送迎で使用
 // compact: 席の中に収める小さい表示
+// memo: 名前の下に小さく表示する補足（集合・送迎画面の送迎メモなど）
 type Props = HTMLAttributes<HTMLDivElement> & {
-  person: BanquetPerson
+  person: CardPerson
   compact?: boolean
+  memo?: string | null
   draggable?: boolean
   isDragging?: boolean
   isOverlay?: boolean
 }
 
-const BanquetPersonCard = forwardRef<HTMLDivElement, Props>(function BanquetPersonCard(
-  { person, compact = false, draggable = false, isDragging = false, isOverlay = false, className = '', ...rest },
+const PersonCard = forwardRef<HTMLDivElement, Props>(function PersonCard(
+  { person, compact = false, memo, draggable = false, isDragging = false, isOverlay = false, className = '', ...rest },
   ref,
 ) {
   // 色分けロジック: 車椅子 > スタッフ > 一般
@@ -49,15 +59,20 @@ const BanquetPersonCard = forwardRef<HTMLDivElement, Props>(function BanquetPers
           {icon}
         </div>
       )}
-      <div className="flex-1 min-w-0 flex items-center gap-1 text-left">
-        {person.isWheelchair && <span className={`shrink-0 ${compact ? 'text-xs' : 'text-sm'}`}>♿️</span>}
-        <span className={`flex-1 min-w-0 truncate block font-bold text-gray-800 ${compact ? 'text-xs' : 'text-sm'}`}>
-          {person.name}
-        </span>
-        {person.isFishNG && <FishNGBadge />}
+      <div className="flex-1 min-w-0 text-left">
+        <div className="flex items-center gap-1">
+          {person.isWheelchair && <span className={`shrink-0 ${compact ? 'text-xs' : 'text-sm'}`}>♿️</span>}
+          <span className={`flex-1 min-w-0 truncate block font-bold text-gray-800 ${compact ? 'text-xs' : 'text-sm'}`}>
+            {person.name}
+          </span>
+          {person.isFishNG && <FishNGBadge />}
+        </div>
+        {memo && (
+          <p className="mt-0.5 text-[11px] leading-snug text-gray-600 break-words">📝 {memo}</p>
+        )}
       </div>
     </div>
   )
 })
 
-export default BanquetPersonCard
+export default PersonCard

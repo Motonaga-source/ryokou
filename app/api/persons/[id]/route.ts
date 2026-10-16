@@ -33,6 +33,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       notes: body.notes,
       isWheelchair: body.isWheelchair ?? undefined,
       isFishNG: body.isFishNG ?? undefined,
+      pickupMemo: body.pickupMemo === undefined ? undefined : (String(body.pickupMemo ?? '').trim() || null),
     },
   })
 
