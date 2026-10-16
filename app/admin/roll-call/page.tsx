@@ -27,6 +27,8 @@ interface RollCallData {
   vehicles: PickupVehicle[]
   pickups: { personId: number; groupId: string }[]
   teams: { id: number; name: string; memberIds: number[] }[]
+  busSeats: { personId: number; vehicle: string | null; rowNo: number | null; seatSide: string | null }[]
+  cars: { id: number; name: string; memberIds: number[] }[]
 }
 
 interface Group {
@@ -35,9 +37,13 @@ interface Group {
   members: { person: RollCallPerson; note?: string }[]
 }
 
-type GroupMode = 'pickup' | 'team' | 'role'
+type GroupMode = 'bus' | 'pickup' | 'team' | 'role'
+
+// 画面を開いたときは必ずバス座席順で表示する
+const DEFAULT_GROUP_MODE: GroupMode = 'bus'
 
 const GROUP_MODES: { value: GroupMode; label: string }[] = [
+  { value: 'bus', label: '🚌 バス座席' },
   { value: 'pickup', label: '🚏 乗車拠点' },
   { value: 'team', label: '📋 チーム' },
   { value: 'role', label: '👥 スタッフ／利用者' },
@@ -59,6 +65,41 @@ function buildGroups(data: RollCallData, mode: GroupMode): Group[] {
       byGroup('スタッフ', 'staff', sorted.filter(p => p.role === 'STAFF').map(person => ({ person }))),
       byGroup('利用者', 'user', sorted.filter(p => p.role !== 'STAFF').map(person => ({ person }))),
     ].filter(g => g.members.length > 0)
+  }
+
+  if (mode === 'bus') {
+    // 大型バスは座席順（前の列から、A→E）、乗用車は車両ごと。どちらにも乗らない人は最後に「未割り当て」
+    const seatOf = new Map(data.busSeats.map(s => [s.personId, s]))
+    const used = new Set<number>()
+    const vehicles = [...new Set(data.busSeats.map(s => s.vehicle ?? '1号車'))].sort()
+    const groups = vehicles.map(vehicle => {
+      const members = data.persons
+        .filter(p => {
+          const seat = seatOf.get(p.id)
+          return seat && (seat.vehicle ?? '1号車') === vehicle
+        })
+        .sort((a, b) => {
+          const sa = seatOf.get(a.id)!, sb = seatOf.get(b.id)!
+          return (sa.rowNo ?? 99) - (sb.rowNo ?? 99) || (sa.seatSide ?? '').localeCompare(sb.seatSide ?? '')
+        })
+      members.forEach(p => used.add(p.id))
+      return byGroup(
+        vehicle === '1号車' ? '大型バス（1号車）' : `大型バス（${vehicle}）`,
+        `bus-${vehicle}`,
+        members.map(person => {
+          const seat = seatOf.get(person.id)!
+          return { person, note: seat.rowNo && seat.seatSide ? `💺 ${seat.rowNo}列 ${seat.seatSide}席` : '座席番号なし' }
+        }),
+      )
+    })
+    for (const car of data.cars) {
+      const ids = new Set(car.memberIds)
+      const members = sorted.filter(p => ids.has(p.id) && !used.has(p.id))
+      members.forEach(p => used.add(p.id))
+      groups.push(byGroup(`乗用車（${car.name}）`, `car-${car.id}`, members.map(person => ({ person, note: `🚙 ${car.name}` }))))
+    }
+    groups.push(byGroup('未割り当て', 'bus-none', sorted.filter(p => !used.has(p.id)).map(person => ({ person }))))
+    return groups.filter(g => g.members.length > 0)
   }
 
   if (mode === 'team') {
@@ -101,7 +142,7 @@ function buildGroups(data: RollCallData, mode: GroupMode): Group[] {
 
 export default function RollCallPage() {
   const [data, setData] = useState<RollCallData | null>(null)
-  const [mode, setMode] = useState<GroupMode>('pickup')
+  const [mode, setMode] = useState<GroupMode>(DEFAULT_GROUP_MODE)
   const [onlyUnchecked, setOnlyUnchecked] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [clearing, setClearing] = useState(false)

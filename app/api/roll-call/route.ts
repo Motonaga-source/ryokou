@@ -6,7 +6,7 @@ import { getSession } from '@/lib/auth'
 
 const unauthorized = () => NextResponse.json({ error: '管理者ログインが必要です' }, { status: 401 })
 
-// GET /api/roll-call?tripId=1  点呼対象（参加者）と、グループ分けに使う集合・送迎／チームの情報（管理者のみ）
+// GET /api/roll-call?tripId=1  点呼対象（参加者）と、グループ分けに使うバス座席／集合・送迎／チームの情報（管理者のみ）
 export async function GET(request: Request) {
   const session = await getSession()
   if (!session?.isAdmin) return unauthorized()
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const tripId = parseInt(searchParams.get('tripId') || '1')
 
-  const [persons, vehicles, pickups, teams] = await Promise.all([
+  const [persons, vehicles, pickups, teams, busSeats, cars] = await Promise.all([
     prisma.person.findMany({
       where: { participations: { some: { tripId, status: '参加' } } },
       select: { id: true, name: true, role: true, gender: true, isWheelchair: true, isFishNG: true, isRollCalled: true },
@@ -27,6 +27,15 @@ export async function GET(request: Request) {
       select: { id: true, name: true, members: { select: { personId: true } } },
       orderBy: { id: 'asc' },
     }),
+    prisma.busSeatAssignment.findMany({
+      where: { tripId },
+      select: { personId: true, vehicle: true, rowNo: true, seatSide: true },
+    }),
+    prisma.car.findMany({
+      where: { tripId },
+      select: { id: true, name: true, assignments: { select: { personId: true } } },
+      orderBy: { id: 'asc' },
+    }),
   ])
 
   return NextResponse.json({
@@ -34,6 +43,8 @@ export async function GET(request: Request) {
     vehicles,
     pickups,
     teams: teams.map(t => ({ id: t.id, name: t.name, memberIds: t.members.map(m => m.personId) })),
+    busSeats,
+    cars: cars.map(c => ({ id: c.id, name: c.name, memberIds: c.assignments.map(a => a.personId) })),
   })
 }
 
