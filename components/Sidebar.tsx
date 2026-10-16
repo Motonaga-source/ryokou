@@ -3,26 +3,13 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { useMenuItems } from '@/lib/useMenuOrder'
 
-const navItems = [
-  { href: '/', label: 'ダッシュボード', icon: '🏠' },
-  { href: '/persons', label: '参加者名簿', icon: '👥' },
-  { href: '/rooms', label: '部屋割り管理', icon: '🏨' },
-  { href: '/bus', label: 'バス座席表', icon: '🚌' },
-  { href: '/vitals', label: 'バイタルチェック', icon: '💊' },
-  { href: '/medications', label: '服薬情報管理', icon: '💉' },
-  { href: '/teams', label: 'チーム・配置', icon: '📋' },
-  { href: '/bathing', label: '入浴管理', icon: '♨️' },
-  { href: '/banquet', label: '宴会 席順', icon: '🍶' },
-  { href: '/pickup', label: '集合・送迎', icon: '🚗' },
-  { href: '/schedule', label: 'スケジュール', icon: '🗓️' },
-  { href: '/supplies', label: '持ち物', icon: '🎒' },
-  { href: '/pocket-money', label: '小遣い精算', icon: '💴' },
-]
 
 export default function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
+  const navItems = useMenuItems().map(m => ({ href: m.path, label: m.label, icon: m.icon }))
 
   return (
     <>

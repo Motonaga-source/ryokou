@@ -207,6 +207,13 @@ model BathingAssignment {
   @@unique([tripId, personId])
 }
 
+// ===== サイドバーのメニュー並び順 =====
+// path は一般画面のパス（例: "/persons"）。管理画面のメニュー（/admin/persons）も同じ順番で表示する
+model MenuOrder {
+  path      String @id
+  sortOrder Int
+}
+
 // ===== 集合・送迎 =====
 // 送迎車。名称・定員・所属拠点は管理画面から追加・変更・削除できる
 model PickupVehicle {

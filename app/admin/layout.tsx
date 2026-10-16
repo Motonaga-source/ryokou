@@ -3,27 +3,19 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { MENU_ORDER_ADMIN_ITEM } from '@/lib/menu'
+import { useMenuItems } from '@/lib/useMenuOrder'
 
-const navItems = [
-  { href: '/admin', label: '管理ダッシュボード', icon: '⚙️' },
-  { href: '/admin/persons', label: '参加者名簿 (編集)', icon: '👥' },
-  { href: '/admin/rooms', label: '部屋割り管理 (編集)', icon: '🏨' },
-  { href: '/admin/bus', label: 'バス座席表 (編集)', icon: '🚌' },
-  { href: '/admin/vitals', label: 'バイタルチェック (編集)', icon: '💊' },
-  { href: '/admin/medications', label: '服薬情報管理 (編集)', icon: '💉' },
-  { href: '/admin/teams', label: 'チーム・配置 (編集)', icon: '📋' },
-  { href: '/admin/bathing', label: '入浴管理 (編集)', icon: '♨️' },
-  { href: '/admin/banquet', label: '宴会 席順 (編集)', icon: '🍶' },
-  { href: '/admin/pickup', label: '集合・送迎 (編集)', icon: '🚗' },
-  { href: '/admin/schedule', label: 'スケジュール (編集)', icon: '🗓️' },
-  { href: '/admin/supplies', label: '持ち物 (編集)', icon: '🎒' },
-  { href: '/admin/pocket-money', label: '小遣い精算 (編集)', icon: '💴' },
-]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  // 並び替え可能なメニュー + 末尾に「メニュー並び替え」を固定
+  const navItems = [
+    ...useMenuItems().map(m => ({ href: m.adminPath, label: m.adminLabel, icon: m.adminIcon ?? m.icon })),
+    MENU_ORDER_ADMIN_ITEM,
+  ]
 
   if (pathname === '/admin/login') {
     return <>{children}</>
