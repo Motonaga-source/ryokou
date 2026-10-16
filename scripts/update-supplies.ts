@@ -1,4 +1,4 @@
-// 持ち物チェックリストを初期データ（prisma/supply-data.ts）で入れ替える
+// 持ち物リストを初期データ（prisma/supply-data.ts）で入れ替える
 // 実行: npm run db:update-supplies
 import { PrismaClient } from '@prisma/client'
 import { SUPPLY_DATA } from '../prisma/supply-data'

@@ -47,7 +47,7 @@ model Person {
   isAdmin      Boolean  @default(false)
   isWheelchair Boolean  @default(false)
   wheelchairSource   String?  // 車椅子の出所: "グレイス貸出" | "持参"
-  wheelchairPrepared Boolean  @default(false) // 持ち物チェック: 貸出用車椅子の準備済み
+  wheelchairPrepared Boolean  @default(false) // 未使用（旧: 持ち物チェックの準備済み）
   password  String?
   facility  String?
   notes     String?
@@ -287,7 +287,7 @@ model SupplyItem {
   facility  String?
   category  String?  // "共通備品" | "施設別の薬"
   notes     String?
-  isChecked Boolean  @default(false)
+  isChecked Boolean  @default(false) // 未使用（旧: 持ち物チェック）
 
   trip         Trip                    @relation(fields: [tripId], references: [id], onDelete: Cascade)
   carryPersons SupplyCarryAssignment[]

@@ -1,4 +1,4 @@
-// 持ち物チェックリストの初期データ
+// 持ち物リストの初期データ
 // scripts/update-supplies.ts と prisma/seed.ts の両方から使用する
 import { SUPPLY_CATEGORIES } from '../lib/supplies'
 

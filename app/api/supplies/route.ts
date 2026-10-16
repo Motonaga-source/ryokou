@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { isSupplyCategory, type SuppliesResponse } from '@/lib/supplies'
 
-// GET /api/supplies?tripId=1  持ち物と車椅子の準備状況
+// GET /api/supplies?tripId=1  持ち物と、車椅子利用者の車椅子の出所
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const tripId = parseInt(searchParams.get('tripId') || '1')
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const [items, wheelchairs] = await Promise.all([
     prisma.supplyItem.findMany({
       where: { tripId },
-      select: { id: true, itemName: true, category: true, isChecked: true },
+      select: { id: true, itemName: true, category: true },
       orderBy: { id: 'asc' },
     }),
     prisma.person.findMany({
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
         participations: { some: { tripId, status: '参加' } },
         OR: [{ isWheelchair: true }, { wheelchairSource: { not: null } }],
       },
-      select: { id: true, name: true, isWheelchair: true, wheelchairSource: true, wheelchairPrepared: true },
+      select: { id: true, name: true, isWheelchair: true, wheelchairSource: true },
       orderBy: { id: 'asc' },
     }),
   ])
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
   const item = await prisma.supplyItem.create({
     data: { tripId, itemName, category: body.category },
-    select: { id: true, itemName: true, category: true, isChecked: true },
+    select: { id: true, itemName: true, category: true },
   })
   return NextResponse.json(item)
 }

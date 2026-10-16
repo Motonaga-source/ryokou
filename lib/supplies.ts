@@ -1,4 +1,4 @@
-// 持ち物チェックリストの定義（API・画面・シードで共通）
+// 持ち物リストの定義（API・画面・シードで共通）
 
 export const SUPPLY_CATEGORIES = {
   COMMON: '共通備品',
@@ -23,7 +23,6 @@ export interface SupplyItem {
   id: number
   itemName: string
   category: string | null
-  isChecked: boolean
 }
 
 export interface WheelchairPerson {
@@ -31,7 +30,6 @@ export interface WheelchairPerson {
   name: string
   isWheelchair: boolean
   wheelchairSource: string | null
-  wheelchairPrepared: boolean
 }
 
 export interface SuppliesResponse {
