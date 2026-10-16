@@ -16,9 +16,11 @@ import {
 import PersonCard, { type CardPerson } from '@/components/PersonCard'
 import { sortPersons } from '@/lib/bathing'
 import {
-  PICKUP_GROUPS,
-  isPickupGroupId,
+  FAMILY_GROUP,
+  PICKUP_LOCATIONS,
+  isFixedPickupGroupId,
   vehicleGroupId,
+  walkGroupId,
   type PickupAssignment,
   type PickupResponse,
   type PickupVehicle,
@@ -42,7 +44,19 @@ async function loadBoard() {
   }
 }
 
-// 集合・送迎の割り当てボード。editable のときはドラッグ＆ドロップでの割り当てと送迎車の設定ができる
+async function request(url: string, method: string, body?: unknown) {
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  if (res.ok) return null
+  const data = await res.json().catch(() => ({}))
+  return (data.error as string) || '保存に失敗しました'
+}
+
+// 集合・送迎の割り当てボード（乗車拠点ごとに表示）
+// editable のときはドラッグ＆ドロップでの割り当てと送迎車の設定ができる
 export default function PickupBoard({ editable = false }: { editable?: boolean }) {
   const [persons, setPersons] = useState<PickupPerson[]>([])
   const [vehicles, setVehicles] = useState<PickupVehicle[]>([])
@@ -67,9 +81,13 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   )
 
+  const isGroupId = (groupId: string | undefined): groupId is string =>
+    !!groupId && (isFixedPickupGroupId(groupId) || vehicles.some(v => vehicleGroupId(v.id) === groupId))
+
   const groupByPerson = new Map(assignments.map(a => [a.personId, a.groupId]))
   const membersOf = (groupId: string) => sortPersons(persons.filter(p => groupByPerson.get(p.id) === groupId))
-  const unassigned = sortPersons(persons.filter(p => !isPickupGroupId(groupByPerson.get(p.id))))
+  // 削除された送迎車に割り当てられていた人なども未割り当てとして扱う
+  const unassigned = sortPersons(persons.filter(p => !isGroupId(groupByPerson.get(p.id))))
 
   const handleAssign = async (personId: number, groupId: string | null) => {
     if ((groupByPerson.get(personId) ?? null) === groupId) return
@@ -80,39 +98,28 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
       ...(groupId ? [{ personId, groupId }] : []),
     ])
 
-    const res = await fetch('/api/pickup/assign', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tripId: 1, personId, groupId }),
-    })
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error || '保存に失敗しました')
-    } else {
-      setError(null)
-    }
+    setError(await request('/api/pickup/assign', 'PUT', { tripId: 1, personId, groupId }))
     applyBoard(await loadBoard())
   }
 
-  const handleSaveVehicles = async (next: PickupVehicle[]) => {
-    const changed = next.filter(v => {
-      const cur = vehicles.find(c => c.id === v.id)
-      return !cur || cur.name !== v.name || cur.capacity !== v.capacity
-    })
-    const results = await Promise.all(changed.map(v => fetch(`/api/pickup/vehicles/${v.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: v.name, capacity: v.capacity }),
-    })))
-    const failed = results.find(r => !r.ok)
-    if (failed) {
-      const data = await failed.json().catch(() => ({}))
-      setError(data.error || '送迎車の保存に失敗しました')
-    } else {
-      setError(null)
-    }
+  // 送迎車の設定を保存（追加・更新・削除）。id が null の行は新規追加
+  const handleSaveVehicles = async (rows: VehicleRow[]) => {
+    const keptIds = new Set(rows.map(r => r.id).filter((id): id is number => id !== null))
+    const removed = vehicles.filter(v => !keptIds.has(v.id))
+    const errors = await Promise.all([
+      ...removed.map(v => request(`/api/pickup/vehicles/${v.id}`, 'DELETE')),
+      ...rows.map(r => {
+        const body = { name: r.name.trim(), capacity: Number(r.capacity), location: r.location }
+        if (r.id === null) return request('/api/pickup/vehicles', 'POST', body)
+        const cur = vehicles.find(v => v.id === r.id)
+        const changed = !cur || cur.name !== body.name || cur.capacity !== body.capacity || cur.location !== body.location
+        return changed ? request(`/api/pickup/vehicles/${r.id}`, 'PUT', body) : Promise.resolve(null)
+      }),
+    ])
+    const failed = errors.find(e => e !== null) ?? null
+    setError(failed)
     applyBoard(await loadBoard())
-    return !failed
+    return failed === null
   }
 
   const onDragStart = (event: DragStartEvent) => {
@@ -126,12 +133,14 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
     const personId = Number(String(active.id).replace('person-', ''))
     const overId = String(over.id)
     if (overId === 'unassigned') handleAssign(personId, null)
-    else if (isPickupGroupId(overId)) handleAssign(personId, overId)
+    else if (isGroupId(overId)) handleAssign(personId, overId)
   }
 
   const activePerson = activeId !== null ? persons.find(p => p.id === activeId) : undefined
 
   if (loading) return <div className="text-center py-10 text-gray-400">読み込み中...</div>
+
+  const familyMembers = membersOf(FAMILY_GROUP.id)
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
@@ -140,55 +149,75 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
           <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg text-sm">{error}</div>
         )}
 
-        {editable && <VehicleSettings vehicles={vehicles} onSave={handleSaveVehicles} />}
+        {editable && (
+          <VehicleSettings
+            vehicles={vehicles}
+            memberCount={id => membersOf(vehicleGroupId(id)).length}
+            onSave={handleSaveVehicles}
+          />
+        )}
 
         <div className="flex flex-col 2xl:flex-row gap-5 items-start">
           {(editable || unassigned.length > 0) && <UnassignedPanel persons={unassigned} editable={editable} />}
 
           <div className="flex-1 w-full space-y-5">
-            {/* 送迎車 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              {vehicles.map(v => {
-                const members = membersOf(vehicleGroupId(v.id))
-                const over = members.length > v.capacity
-                return (
+            {PICKUP_LOCATIONS.map(location => {
+              const walkMembers = membersOf(walkGroupId(location.id))
+              const locationVehicles = vehicles.filter(v => v.location === location.id)
+              const total = walkMembers.length +
+                locationVehicles.reduce((n, v) => n + membersOf(vehicleGroupId(v.id)).length, 0)
+              return (
+                <AreaSection
+                  key={location.id}
+                  title={location.title}
+                  time={location.time}
+                  total={total}
+                >
                   <GroupBox
-                    key={v.id}
-                    groupId={vehicleGroupId(v.id)}
+                    groupId={walkGroupId(location.id)}
                     editable={editable}
-                    colorClass={over ? 'bg-red-50 border-red-500' : 'bg-amber-50 border-amber-300'}
-                    title={
-                      <span className={over ? 'text-red-700' : ''}>
-                        🚗 {v.name}<span className="text-sm font-medium">（定員：{v.capacity}名）</span>
-                      </span>
-                    }
-                    count={
-                      <span className={over ? 'text-red-700 font-bold' : ''}>{members.length}/{v.capacity}名</span>
-                    }
-                    warning={over ? `⚠️ 定員オーバー（+${members.length - v.capacity}名）` : undefined}
-                    persons={members}
+                    colorClass="bg-green-50 border-green-300"
+                    title={<>🚶 徒歩集合（{location.label}）</>}
+                    count={<>{walkMembers.length}名</>}
+                    persons={walkMembers}
                   />
-                )
-              })}
-            </div>
+                  {locationVehicles.map(v => {
+                    const members = membersOf(vehicleGroupId(v.id))
+                    const over = members.length > v.capacity
+                    return (
+                      <GroupBox
+                        key={v.id}
+                        groupId={vehicleGroupId(v.id)}
+                        editable={editable}
+                        colorClass={over ? 'bg-red-50 border-red-500' : 'bg-amber-50 border-amber-300'}
+                        title={
+                          <span className={over ? 'text-red-700' : ''}>
+                            🚗 {v.name}<span className="text-sm font-medium">（定員：{v.capacity}名）</span>
+                          </span>
+                        }
+                        count={
+                          <span className={over ? 'text-red-700 font-bold' : ''}>{members.length}/{v.capacity}名</span>
+                        }
+                        warning={over ? `⚠️ 定員オーバー（+${members.length - v.capacity}名）` : undefined}
+                        persons={members}
+                      />
+                    )
+                  })}
+                </AreaSection>
+              )
+            })}
 
-            {/* 送迎車以外 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {PICKUP_GROUPS.map(g => {
-                const members = membersOf(g.id)
-                return (
-                  <GroupBox
-                    key={g.id}
-                    groupId={g.id}
-                    editable={editable}
-                    colorClass={g.colorClass}
-                    title={<>{g.icon} {g.label}</>}
-                    count={<>{members.length}名</>}
-                    persons={members}
-                  />
-                )
-              })}
-            </div>
+            {/* 乗車拠点を通らない人 */}
+            <AreaSection title="【その他】個別対応" total={familyMembers.length}>
+              <GroupBox
+                groupId={FAMILY_GROUP.id}
+                editable={editable}
+                colorClass="bg-purple-50 border-purple-300"
+                title={<>{FAMILY_GROUP.icon} {FAMILY_GROUP.label}</>}
+                count={<>{familyMembers.length}名</>}
+                persons={familyMembers}
+              />
+            </AreaSection>
           </div>
         </div>
       </div>
@@ -197,6 +226,24 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
         {activePerson ? <PersonCard person={activePerson} memo={activePerson.pickupMemo} draggable isOverlay /> : null}
       </DragOverlay>
     </DndContext>
+  )
+}
+
+function AreaSection({ title, time, total, children }: {
+  title: string
+  time?: string
+  total: number
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div className="px-4 py-3 bg-slate-700 text-white flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 className="font-bold">{title}</h2>
+        {time && <span className="text-xs font-bold bg-white/20 rounded-full px-2 py-0.5">🕗 {time}</span>}
+        <span className="ml-auto text-sm text-slate-200">{total}名</span>
+      </div>
+      <div className="p-4 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">{children}</div>
+    </section>
   )
 }
 
@@ -231,7 +278,7 @@ function GroupBox({ groupId, editable, colorClass, title, count, warning, person
         </div>
         {warning && <p className="text-xs font-bold text-red-700 mt-0.5">{warning}</p>}
       </div>
-      <div className="min-h-[120px] p-3 flex flex-col gap-2">
+      <div className="min-h-[100px] p-3 flex flex-col gap-2">
         {persons.map(p => <DraggablePerson key={p.id} person={p} editable={editable} />)}
       </div>
     </div>
@@ -292,22 +339,43 @@ function DraggablePerson({ person, editable }: { person: PickupPerson; editable:
   )
 }
 
-function VehicleSettings({ vehicles, onSave }: {
+interface VehicleRow {
+  key: string
+  id: number | null
+  name: string
+  capacity: string
+  location: string
+}
+
+const locationLabel = (id: string) => PICKUP_LOCATIONS.find(l => l.id === id)?.label ?? id
+
+function VehicleSettings({ vehicles, memberCount, onSave }: {
   vehicles: PickupVehicle[]
-  onSave: (vehicles: PickupVehicle[]) => Promise<boolean>
+  memberCount: (vehicleId: number) => number
+  onSave: (rows: VehicleRow[]) => Promise<boolean>
 }) {
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState<{ id: number; name: string; capacity: string }[]>([])
+  const [rows, setRows] = useState<VehicleRow[]>([])
   const [saving, setSaving] = useState(false)
+  const [newKey, setNewKey] = useState(0)
 
   const start = () => {
-    setForm(vehicles.map(v => ({ id: v.id, name: v.name, capacity: String(v.capacity) })))
+    setRows(vehicles.map(v => ({ key: `v${v.id}`, id: v.id, name: v.name, capacity: String(v.capacity), location: v.location })))
     setOpen(true)
   }
-  const update = (id: number, patch: Partial<{ name: string; capacity: string }>) =>
-    setForm(f => f.map(v => (v.id === id ? { ...v, ...patch } : v)))
+  const update = (key: string, patch: Partial<VehicleRow>) =>
+    setRows(r => r.map(v => (v.key === key ? { ...v, ...patch } : v)))
+  const add = () => {
+    setRows(r => [...r, { key: `new${newKey}`, id: null, name: '', capacity: '4', location: PICKUP_LOCATIONS[0].id }])
+    setNewKey(k => k + 1)
+  }
+  const remove = (row: VehicleRow) => {
+    const count = row.id !== null ? memberCount(row.id) : 0
+    if (count > 0 && !confirm(`「${row.name}」には${count}名が割り当てられています。削除すると未割り当てに戻ります。よろしいですか？`)) return
+    setRows(r => r.filter(v => v.key !== row.key))
+  }
 
-  const invalid = form.some(v => !v.name.trim() || !/^\d+$/.test(v.capacity) || Number(v.capacity) < 1 || Number(v.capacity) > 99)
+  const invalid = rows.some(v => !v.name.trim() || !/^\d+$/.test(v.capacity) || Number(v.capacity) < 1 || Number(v.capacity) > 99)
 
   if (!open) {
     return (
@@ -317,14 +385,18 @@ function VehicleSettings({ vehicles, onSave }: {
           onClick={start}
           className="px-4 py-2 rounded-xl bg-slate-700 text-white text-sm font-semibold hover:bg-slate-600"
         >
-          ⚙️ 送迎車の設定（名称・定員）
+          ⚙️ 送迎車の設定（名称・定員・所属拠点）
         </button>
         <span className="text-xs text-gray-500">
-          {vehicles.map(v => `${v.name}：${v.capacity}名`).join(' ／ ')}
+          {vehicles.length === 0
+            ? '送迎車が登録されていません'
+            : vehicles.map(v => `${v.name}（${locationLabel(v.location)}・${v.capacity}名）`).join(' ／ ')}
         </span>
       </div>
     )
   }
+
+  const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400'
 
   return (
     <form
@@ -332,56 +404,85 @@ function VehicleSettings({ vehicles, onSave }: {
         e.preventDefault()
         if (invalid) return
         setSaving(true)
-        const ok = await onSave(form.map(v => ({ id: v.id, name: v.name.trim(), capacity: Number(v.capacity) })))
+        const ok = await onSave(rows)
         setSaving(false)
         if (ok) setOpen(false)
       }}
       className="bg-white rounded-2xl border-2 border-slate-300 shadow-sm p-4 space-y-3"
     >
       <h3 className="font-bold text-gray-800">⚙️ 送迎車の設定</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        {form.map(v => (
-          <div key={v.id} className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
+      {rows.length === 0 && <p className="text-sm text-gray-400">送迎車がありません。「＋ 車両を追加」から登録してください。</p>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        {rows.map(v => (
+          <div key={v.key} className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-gray-500">{v.id === null ? '新しい車両' : `車両 #${v.id}`}</span>
+              <button
+                type="button"
+                onClick={() => remove(v)}
+                className="text-xs text-red-600 hover:bg-red-50 rounded-md px-2 py-1 border border-red-200"
+              >
+                🗑️ 削除
+              </button>
+            </div>
             <label className="block">
-              <span className="text-xs font-semibold text-gray-600">車両{v.id}の名称</span>
+              <span className="text-xs font-semibold text-gray-600">名称</span>
               <input
                 value={v.name}
-                onChange={e => update(v.id, { name: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                onChange={e => update(v.key, { name: e.target.value })}
+                placeholder="例: 湯里送迎車"
+                className={inputClass}
                 required
               />
             </label>
-            <label className="block">
-              <span className="text-xs font-semibold text-gray-600">定員（名）</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={99}
-                value={v.capacity}
-                onChange={e => update(v.id, { capacity: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                required
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className="text-xs font-semibold text-gray-600">定員（名）</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={99}
+                  value={v.capacity}
+                  onChange={e => update(v.key, { capacity: e.target.value })}
+                  className={inputClass}
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-semibold text-gray-600">所属拠点</span>
+                <select value={v.location} onChange={e => update(v.key, { location: e.target.value })} className={inputClass}>
+                  {PICKUP_LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+                </select>
+              </label>
+            </div>
           </div>
         ))}
       </div>
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-between gap-2">
         <button
           type="button"
-          onClick={() => setOpen(false)}
-          className="px-4 py-2 rounded-lg text-sm border border-gray-300 text-gray-600 hover:bg-gray-50"
+          onClick={add}
+          className="px-4 py-2 rounded-lg text-sm font-semibold border-2 border-dashed border-blue-300 text-blue-600 hover:bg-blue-50"
         >
-          キャンセル
+          ＋ 車両を追加
         </button>
-        <button
-          type="submit"
-          disabled={saving || invalid}
-          className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          {saving ? '保存中...' : '保存'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="px-4 py-2 rounded-lg text-sm border border-gray-300 text-gray-600 hover:bg-gray-50"
+          >
+            キャンセル
+          </button>
+          <button
+            type="submit"
+            disabled={saving || invalid}
+            className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? '保存中...' : '保存'}
+          </button>
+        </div>
       </div>
     </form>
   )

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
-import { isPickupGroupId } from '@/lib/pickup'
+import { isFixedPickupGroupId, vehicleIdOf } from '@/lib/pickup'
 
 // PUT /api/pickup/assign
 // body: { tripId?: number, personId: number, groupId: string | null }
@@ -20,8 +20,13 @@ export async function PUT(request: Request) {
   if (!personId) {
     return NextResponse.json({ error: 'personId が不正です' }, { status: 400 })
   }
-  if (groupId !== null && !isPickupGroupId(groupId)) {
-    return NextResponse.json({ error: 'groupId が不正です' }, { status: 400 })
+  if (groupId !== null && !isFixedPickupGroupId(groupId)) {
+    // 送迎車の場合は登録済みの車両か確認
+    const vehicleId = typeof groupId === 'string' ? vehicleIdOf(groupId) : null
+    const vehicle = vehicleId ? await prisma.pickupVehicle.findUnique({ where: { id: vehicleId } }) : null
+    if (!vehicle) {
+      return NextResponse.json({ error: 'groupId が不正です' }, { status: 400 })
+    }
   }
 
   if (groupId === null) {

@@ -208,18 +208,19 @@ model BathingAssignment {
 }
 
 // ===== 集合・送迎 =====
-// 送迎車（id 1〜4 の4台）。名称と定員は管理画面から変更できる
+// 送迎車。名称・定員・所属拠点は管理画面から追加・変更・削除できる
 model PickupVehicle {
-  id       Int    @id
+  id       Int    @id @default(autoincrement())
   name     String
   capacity Int
+  location String // 所属する乗車拠点: "yuzato" | "grace" | "uriwari-nishi"（lib/pickup.ts を参照）
 }
 
 model PickupAssignment {
   id       Int    @id @default(autoincrement())
   tripId   Int
   personId Int
-  groupId  String // "walk" | "station" | "family" | "car-1"〜"car-4"（lib/pickup.ts を参照）
+  groupId  String // "walk-{拠点}" | "family" | "car-{送迎車id}"（lib/pickup.ts を参照）
 
   trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)

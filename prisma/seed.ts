@@ -479,10 +479,10 @@ async function main() {
   await prisma.supplyItem.createMany({ data: SUPPLY_DATA.map((s) => ({ tripId: trip.id, ...s })) })
   console.log(`✅ 持ち物 ${SUPPLY_DATA.length}件作成`)
 
-  // ===== 12. PickupVehicle（送迎車）=====
-  for (const v of DEFAULT_PICKUP_VEHICLES) {
-    await prisma.pickupVehicle.upsert({ where: { id: v.id }, create: v, update: {} })
-  }
+  // ===== 12. PickupVehicle（送迎車）: リセットして各拠点に1台ずつ登録 =====
+  await prisma.pickupAssignment.deleteMany({ where: { groupId: { startsWith: 'car-' } } })
+  await prisma.pickupVehicle.deleteMany({})
+  await prisma.pickupVehicle.createMany({ data: DEFAULT_PICKUP_VEHICLES })
   console.log(`✅ 送迎車 ${DEFAULT_PICKUP_VEHICLES.length}台作成`)
 
   console.log('\n🎉 全シードデータ投入完了！')
