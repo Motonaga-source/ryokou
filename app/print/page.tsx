@@ -81,8 +81,9 @@ export default async function PrintPage() {
         {[1, 2].map(day => {
           const list = schedules.filter(s => s.dayNo === day)
           return (
-            <div key={day} className="mb-4">
-              <h3 className="font-bold mb-1">{DAY_NAMES[day]}</h3>
+            // 1日目と2日目は別の用紙に分ける
+            <div key={day} className={day === 1 ? 'break-after-page' : ''}>
+              <SubHeading>{DAY_NAMES[day]}</SubHeading>
               <table className="w-full border-collapse text-[11px]">
                 <thead>
                   <tr className="bg-gray-100">
@@ -136,7 +137,7 @@ export default async function PrintPage() {
         <div className="space-y-3">
           {PICKUP_LOCATIONS.map(loc => (
             <div key={loc.id} className="print-avoid-break">
-              <h3 className="font-bold bg-gray-800 text-white px-2 py-0.5">{loc.title}　🕗 {loc.time}</h3>
+              <h3 className="font-bold bg-gray-800 text-white px-2 py-1">{loc.title}　🕗 {loc.time}</h3>
               <div className="grid grid-cols-3 gap-2 mt-1.5">
                 <Box title={`🚶 徒歩でバス停へ移動（${loc.label}）`} className="col-span-2">
                   <NameList persons={pickupMembers(walkGroupId(loc.id))} columns={2} />
@@ -148,7 +149,7 @@ export default async function PrintPage() {
             </div>
           ))}
           <div className="print-avoid-break">
-            <h3 className="font-bold bg-gray-800 text-white px-2 py-0.5">その他（個別対応・その他の送迎車）</h3>
+            <h3 className="font-bold bg-gray-800 text-white px-2 py-1">その他（個別対応・その他の送迎車）</h3>
             <div className="grid grid-cols-3 gap-2 mt-1.5">
               <Box title={`${FAMILY_GROUP.icon} ${FAMILY_GROUP.label}`}>
                 <NameList persons={pickupMembers(FAMILY_GROUP.id)} />
@@ -164,54 +165,51 @@ export default async function PrintPage() {
 
       {/* ④ バス座席表 */}
       <Section title="④ バス座席表">
-        <h3 className="font-bold mb-1">大型バス（1号車）</h3>
-        <table className="w-full border-collapse table-fixed text-[11px] print-avoid-break">
-          <thead>
-            <tr className="bg-gray-100">
-              <Th className="w-8">列</Th>
-              <Th>A</Th>
-              <Th>B</Th>
-              <Th className="w-4 !p-0" />
-              <Th>C</Th>
-              <Th>D</Th>
-            </tr>
-          </thead>
-          <tbody>
+        <SubHeading>大型バス（1号車）</SubHeading>
+        <div className="mx-auto max-w-[170mm] rounded-2xl border-2 border-gray-500 bg-gray-50 p-3 print-avoid-break">
+          <div className="text-center text-[10px] font-bold text-gray-500 tracking-[0.5em] mb-2">後方</div>
+          {/* 列ヘッダー */}
+          <div className="grid grid-cols-[2rem_1fr_1fr_2.5rem_1fr_1fr] gap-1.5 mb-1.5 text-center text-[10px] font-bold text-gray-600">
+            <span />
+            <span className="rounded bg-gray-200 py-0.5">A</span>
+            <span className="rounded bg-gray-200 py-0.5">B</span>
+            <span className="text-[9px] text-gray-400 self-center">通路</span>
+            <span className="rounded bg-gray-200 py-0.5">C</span>
+            <span className="rounded bg-gray-200 py-0.5">D</span>
+          </div>
+          <div className="space-y-1.5">
             {BUS_ROWS.map(row => (
-              <tr key={row} className="h-7">
-                <Td className="text-center font-bold">{row}</Td>
+              <div key={row} className="grid grid-cols-[2rem_1fr_1fr_2.5rem_1fr_1fr] gap-1.5">
+                <span className="rounded bg-gray-200 text-[11px] font-bold text-gray-700 flex items-center justify-center">{row}</span>
                 {row === 12 ? (
-                  // 最後列は A〜E の5席
-                  <Td colSpan={5} className="!p-0">
-                    <div className="grid grid-cols-5 h-full">
-                      {['A', 'B', 'C', 'D', 'E'].map(side => (
-                        <div key={side} className="border-r last:border-r-0 border-gray-400 px-1 py-0.5 flex items-center gap-1">
-                          <span className="text-[9px] text-gray-500">{side}</span>
-                          <SeatName person={seatPerson(row, side)} />
-                        </div>
-                      ))}
-                    </div>
-                  </Td>
+                  // 最後列は通路をふさいで A〜E の5席
+                  <div className="col-span-5 grid grid-cols-5 gap-1.5">
+                    {['A', 'B', 'C', 'D', 'E'].map(side => (
+                      <BusSeat key={side} code={`${row}${side}`} person={seatPerson(row, side)} />
+                    ))}
+                  </div>
                 ) : (
                   <>
-                    <Td><SeatName person={seatPerson(row, 'A')} /></Td>
-                    <Td><SeatName person={seatPerson(row, 'B')} /></Td>
-                    <Td className="bg-gray-100 !p-0" />
-                    <Td><SeatName person={seatPerson(row, 'C')} /></Td>
-                    <Td><SeatName person={seatPerson(row, 'D')} /></Td>
+                    <BusSeat code={`${row}A`} person={seatPerson(row, 'A')} />
+                    <BusSeat code={`${row}B`} person={seatPerson(row, 'B')} />
+                    <span className="border-x-2 border-dashed border-gray-300" aria-hidden />
+                    <BusSeat code={`${row}C`} person={seatPerson(row, 'C')} />
+                    <BusSeat code={`${row}D`} person={seatPerson(row, 'D')} />
                   </>
                 )}
-              </tr>
+              </div>
             ))}
-            <tr>
-              <Td colSpan={6} className="text-center font-bold bg-gray-100 tracking-[0.5em]">前方（運転席・乗降口）</Td>
-            </tr>
-          </tbody>
-        </table>
+          </div>
+          <div className="mt-3 flex items-stretch gap-2 border-t-4 border-gray-400 pt-2 text-[10px] font-bold text-gray-600">
+            <span className="rounded-lg border-2 border-gray-400 bg-gray-200 px-3 py-2">🚌 運転席</span>
+            <span className="flex-1 self-center text-center tracking-[0.5em] text-gray-500">前方</span>
+            <span className="rounded-lg border-2 border-dashed border-gray-400 bg-white px-3 py-2">乗降口</span>
+          </div>
+        </div>
 
         {cars.length > 0 && (
           <>
-            <h3 className="font-bold mt-4 mb-1">乗用車（送迎・別働）</h3>
+            <SubHeading className="mt-5">乗用車（送迎・別働）</SubHeading>
             <div className="grid grid-cols-3 gap-2">
               {cars.map(car => (
                 <VehicleBox
@@ -293,30 +291,21 @@ export default async function PrintPage() {
 
       {/* ⑦ 宴会 席順 */}
       <Section title="⑦ 宴会 席順">
-        <div className="grid grid-cols-3 gap-2 text-[9px]">
+        <div className="grid grid-cols-3 gap-3">
           {BANQUET_COLUMNS.map(column => (
-            <div key={column.key} className="border border-gray-500 p-1 space-y-1">
-              <div className="text-center font-bold text-[10px]">{column.label}</div>
+            <div key={column.key} className="rounded-xl border border-gray-400 bg-gray-50 p-2 space-y-2.5">
+              <div className="rounded bg-gray-200 py-0.5 text-center text-[11px] font-bold">{column.label}</div>
               {tablesOf(column.key).map(table => (
-                <div key={table.key} className="border border-gray-400 bg-amber-50 p-0.5 print-avoid-break">
-                  <div className="text-[8px] text-gray-600">{table.label}</div>
-                  <div className="grid grid-cols-2 gap-0.5">
-                    {table.seatIds.map(seatId => {
-                      const p = banquetBySeat.get(seatId)
-                      return (
-                        <div key={seatId} className={`h-6 border px-0.5 flex items-center gap-0.5 overflow-hidden ${personColor(p)}`}>
-                          <span className="text-[7px] text-gray-500 shrink-0">{seatId.split('-')[2]}</span>
-                          {p && <span className="truncate font-bold">{personLabel(p)}</span>}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
+                <BanquetTable
+                  key={table.key}
+                  label={table.label}
+                  seats={table.seatIds.map(seatId => ({ seatId, person: banquetBySeat.get(seatId) }))}
+                />
               ))}
             </div>
           ))}
         </div>
-        <div className="mt-2 bg-red-700 text-white text-center font-bold py-1 tracking-[1em]">舞台</div>
+        <div className="mt-3 rounded-lg bg-red-700 text-white text-center font-bold py-1.5 tracking-[1em]">舞台</div>
       </Section>
     </div>
   )
@@ -335,9 +324,15 @@ const personLabel = (p: P) => `${p.isWheelchair ? '♿' : ''}${p.name}${p.isFish
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h2 className="text-base font-bold border-l-4 border-black pl-2 mb-2">{title}</h2>
+      <h2 className="text-base font-bold bg-gray-200 border-l-8 border-gray-800 border-b-2 border-b-gray-400 px-3 py-1.5 mb-3">{title}</h2>
       {children}
     </section>
+  )
+}
+
+function SubHeading({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <h3 className={`font-bold bg-gray-100 border-b-2 border-gray-400 px-2 py-1 mb-1.5 ${className}`}>{children}</h3>
   )
 }
 
@@ -364,7 +359,7 @@ function Box({ title, right, className = '', children }: {
 }) {
   return (
     <div className={`border border-gray-500 print-avoid-break ${className}`}>
-      <div className="flex justify-between gap-1 bg-gray-100 border-b border-gray-500 px-1.5 py-0.5 font-bold text-[11px]">
+      <div className="flex justify-between gap-1 bg-gray-100 border-b border-gray-500 px-2 py-1 font-bold text-[11px]">
         <span className="min-w-0">{title}</span>
         {right && <span className="shrink-0">{right}</span>}
       </div>
@@ -394,7 +389,7 @@ function NameList({ persons, leaderIds, banByPerson, columns = 1 }: {
       {persons.map(p => {
         const ban = banByPerson?.get(p.id)
         return (
-          <li key={p.id} className={`border px-1 text-[11px] flex items-center gap-1 ${personColor(p)}`}>
+          <li key={p.id} className={`border px-1.5 py-0.5 text-[11px] flex items-center gap-1 ${personColor(p)}`}>
             {leaderIds?.has(p.id) && <span>★</span>}
             <span className="flex-1 min-w-0 truncate">{personLabel(p)}</span>
             {ban && <span className="shrink-0 text-[10px] font-bold">{ban}班</span>}
@@ -405,9 +400,54 @@ function NameList({ persons, leaderIds, banByPerson, columns = 1 }: {
   )
 }
 
-function SeatName({ person }: { person?: P }) {
-  if (!person) return null
-  return <span className={`inline-block max-w-full truncate border px-0.5 ${personColor(person)}`}>{personLabel(person)}</span>
+function BusSeat({ code, person }: { code: string; person?: P }) {
+  return (
+    <div className="flex h-8 min-w-0 overflow-hidden rounded border border-gray-300">
+      <span className="w-7 shrink-0 border-r border-gray-300 bg-gray-100 text-[9px] text-gray-500 flex items-center justify-center">{code}</span>
+      <span className={`flex-1 min-w-0 px-1 text-[11px] font-bold flex items-center ${person ? personColor(person) : 'bg-white'}`}>
+        {person && <SeatPersonName person={person} />}
+      </span>
+    </div>
+  )
+}
+
+// 狭い席のセル用の名前表示。♿・🐟❌ は必ず見えるように縮めず、名前（姓名の間は半角に詰める）だけ省略する
+function SeatPersonName({ person }: { person: P }) {
+  return (
+    <>
+      {person.isWheelchair && <span className="shrink-0">♿</span>}
+      <span className="min-w-0 truncate">{person.name.replace(/　/g, ' ')}</span>
+      {person.isFishNG && <span className="shrink-0 text-[8px]">🐟❌</span>}
+    </>
+  )
+}
+
+// 宴会の1テーブル。着席者の間にテーブル面を描き、同じテーブルの人がひと目でわかるようにする
+function BanquetTable({ label, seats }: { label: string; seats: { seatId: string; person?: P }[] }) {
+  const seated = seats.filter(s => s.person).length
+  const top = seats.slice(0, 2)
+  const bottom = seats.slice(2)
+  const row = (list: typeof seats) => (
+    <div className="grid grid-cols-2 gap-1">
+      {list.map(({ seatId, person }) => (
+        <div key={seatId} className={`h-7 min-w-0 rounded border px-1 flex items-center gap-1 ${personColor(person)}`}>
+          <span className="shrink-0 text-[8px] text-gray-400">{seatId.split('-')[2]}</span>
+          {person && <span className="flex-1 min-w-0 flex items-center text-[10px] font-bold"><SeatPersonName person={person} /></span>}
+        </div>
+      ))}
+    </div>
+  )
+  return (
+    <div className="rounded-lg border-2 border-amber-600/60 bg-amber-50 p-1.5 print-avoid-break">
+      <div className="mb-1 flex justify-between text-[9px] font-bold text-amber-900">
+        <span>{label}</span>
+        <span>{seated}/{seats.length}名</span>
+      </div>
+      {row(top)}
+      <div className="my-1 h-2 rounded-sm bg-amber-700/40" aria-hidden />
+      {bottom.length > 0 && row(bottom)}
+    </div>
+  )
 }
 
 function CheckList({ items }: { items: string[] }) {
@@ -425,9 +465,9 @@ function CheckList({ items }: { items: string[] }) {
 }
 
 function Th({ children, className = '' }: { children?: ReactNode; className?: string }) {
-  return <th className={`border border-gray-500 px-1.5 py-0.5 text-left ${className}`}>{children}</th>
+  return <th className={`border border-gray-500 px-2 py-1.5 text-left ${className}`}>{children}</th>
 }
 
 function Td({ children, className = '', colSpan }: { children?: ReactNode; className?: string; colSpan?: number }) {
-  return <td colSpan={colSpan} className={`border border-gray-500 px-1.5 py-0.5 align-top ${className}`}>{children}</td>
+  return <td colSpan={colSpan} className={`border border-gray-500 px-2 py-1.5 align-top ${className}`}>{children}</td>
 }
