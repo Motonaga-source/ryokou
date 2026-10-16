@@ -58,7 +58,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* ヘッダー */}
-      <div className="pt-12 md:pt-0">
+      <div className="pt-12 lg:pt-0">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
           ✈️ {data?.trip.name || '旅行管理システム'}
         </h1>

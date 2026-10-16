@@ -15,7 +15,7 @@ export default function Sidebar() {
     <>
       {/* モバイルメニューボタン */}
       <button
-        className="fixed top-4 left-4 z-50 md:hidden bg-blue-600 text-white p-2 rounded-lg shadow-lg"
+        className="fixed top-4 left-4 z-50 lg:hidden bg-blue-600 text-white p-2 rounded-lg shadow-lg"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="メニュー"
       >
@@ -25,7 +25,7 @@ export default function Sidebar() {
       {/* オーバーレイ（モバイル） */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -36,7 +36,7 @@ export default function Sidebar() {
           print:hidden
           fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-blue-700 to-blue-900
           text-white z-40 transform transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
           flex flex-col shadow-xl
         `}
       >

@@ -132,7 +132,7 @@ export default function VitalsPage() {
         </div>
       )}
 
-      <div className="pt-12 md:pt-0">
+      <div className="pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-gray-800">💊 バイタルチェック</h1>
         <p className="text-gray-500 text-sm mt-1">
           {activeFloor}階：{recorded}/{allPersons.length}名 記録済み

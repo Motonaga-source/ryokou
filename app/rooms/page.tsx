@@ -92,7 +92,7 @@ export default function RoomsViewPage() {
   
   return (
     <DndContext sensors={null} collisionDetection={null} onDragStart={() => {}} onDragEnd={() => {}}>
-      <div className="max-w-7xl mx-auto space-y-6 pt-12 md:pt-0">
+      <div className="max-w-7xl mx-auto space-y-6 pt-12 lg:pt-0">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-800">🏨 部屋割り管理</h1>
         </div>
@@ -116,8 +116,8 @@ export default function RoomsViewPage() {
         {loading ? (
            <div className="text-center py-10 text-gray-400">読み込み中...</div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="flex flex-col xl:flex-row gap-6 items-start">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
               {floorRooms.map(room => (
                 <div key={room.id} className="relative group">
                   <DroppableRoom room={room} />
@@ -125,7 +125,7 @@ export default function RoomsViewPage() {
               ))}
             </div>
 
-            <div className="w-full lg:w-80 shrink-0 space-y-4">
+            <div className="w-full xl:w-80 shrink-0 space-y-4">
               <DroppableUnassigned persons={unassigned} role="STAFF" title="スタッフ" />
               <DroppableUnassigned persons={unassigned} role="USER" title="利用者" />
             </div>
@@ -188,7 +188,7 @@ function DroppableUnassigned({ persons, role, title }: { persons: Person[], role
     >
       <h3 className="font-bold text-gray-800 mb-1">未割り当て ({title}) - {filtered.length}名</h3>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-1 gap-2 max-h-[400px] lg:max-h-[600px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1 gap-2 max-h-[400px] xl:max-h-[600px] overflow-y-auto pr-1">
         {filtered.map(p => (
           <DraggablePerson key={p.id} person={p} />
         ))}
@@ -226,7 +226,7 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
         {...listeners}
         {...attributes}
         className={`
-          flex items-center gap-2 p-2 w-full rounded-md border-2 shadow-sm cursor-grab touch-none transition-colors
+          flex items-center gap-2 p-2 w-full rounded-md border-2 shadow-sm cursor-grab touch-manipulation transition-colors
           ${bgClass}
           ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
           ${isOverlay ? 'shadow-2xl scale-105 rotate-2 cursor-grabbing z-50' : ''}

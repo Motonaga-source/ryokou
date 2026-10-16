@@ -50,7 +50,7 @@ const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPers
       className={`
         w-full flex items-center gap-2 p-2 rounded-md shadow-sm border-2 transition-colors
         ${bgClass}
-        ${draggable ? 'cursor-grab touch-none' : ''}
+        ${draggable ? 'cursor-grab touch-manipulation' : ''}
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
         ${isOverlay ? 'shadow-2xl scale-105 rotate-2 cursor-grabbing z-50' : ''}
         ${className}

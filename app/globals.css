@@ -39,6 +39,18 @@
   .lg\:flex-row {
     flex-direction: row !important;
   }
+  .xl\:flex-row {
+    flex-direction: row !important;
+  }
+  .xl\:w-56 {
+    width: 14rem !important;
+  }
+  .xl\:w-80 {
+    width: 20rem !important;
+  }
+  .xl\:order-1 { order: 1 !important; }
+  .xl\:order-2 { order: 2 !important; }
+  .xl\:order-3 { order: 3 !important; }
   .lg\:w-56 {
     width: 14rem !important; /* 56 * 0.25rem = 14rem */
   }

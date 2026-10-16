@@ -146,7 +146,7 @@ export default function AdminBathingPage() {
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="space-y-5 pt-12 md:pt-0">
+      <div className="space-y-5 pt-12 lg:pt-0">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">♨️ 入浴管理</h1>
           <p className="text-sm text-gray-500">長押しでドラッグ＆ドロップして入浴の役割・配置を振り分けます。</p>
@@ -159,22 +159,22 @@ export default function AdminBathingPage() {
         {loading || !groups ? (
           <div className="text-center py-10 text-gray-400">読み込み中...</div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex flex-col xl:flex-row gap-6 items-start">
 
             {/* 左カラム: 未割り当て（スタッフ） */}
-            <div className="w-full lg:w-56 shrink-0 order-2 lg:order-1">
+            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1">
               <DroppableUnassigned persons={unassigned} role="STAFF" title="スタッフ" />
             </div>
 
             {/* 中央カラム: 入浴グループ（男湯・女湯を左右に並べる） */}
-            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3 order-1 lg:order-2">
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3 order-1 xl:order-2">
               {BATHING_ROLES.map(r => (
                 <DroppableGroup key={r.value} group={r} persons={groups[r.value]} onBanChange={handleBanChange} />
               ))}
             </div>
 
             {/* 右カラム: 未割り当て（利用者） */}
-            <div className="w-full lg:w-56 shrink-0 order-3 lg:order-3">
+            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3">
               <DroppableUnassigned persons={unassigned} role="USER" title="利用者" />
             </div>
 
@@ -250,7 +250,7 @@ function DroppableUnassigned({ persons, role, title }: { persons: BathingPerson[
       <h3 className="font-bold text-gray-800 mb-1">未割り当て ({title}) - {filtered.length}名</h3>
       <p className="text-xs text-gray-500 mb-3 print:hidden">ここへドロップすると割り当てが解除されます</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-1 gap-3 max-h-[400px] lg:max-h-[600px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1 gap-3 max-h-[400px] xl:max-h-[600px] overflow-y-auto pr-1">
         {filtered.map(p => (
           <DraggablePerson key={p.id} person={p} />
         ))}

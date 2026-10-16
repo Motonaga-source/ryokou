@@ -39,7 +39,7 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-5">
-      <div className="pt-12 md:pt-0">
+      <div className="pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-gray-800">🗓️ スケジュール</h1>
         <p className="text-gray-500 text-sm mt-1">旅行当日の流れと担当者</p>
       </div>

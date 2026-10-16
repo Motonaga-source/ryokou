@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen bg-gray-50">
       <button
-        className="fixed top-4 left-4 z-50 md:hidden bg-slate-800 text-white p-2 rounded-lg shadow-lg"
+        className="fixed top-4 left-4 z-50 lg:hidden bg-slate-800 text-white p-2 rounded-lg shadow-lg"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? '✕' : '☰'}
@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           print:hidden
           fixed top-0 left-0 h-full w-64 bg-gradient-to-b from-slate-800 to-slate-950
           text-white z-40 transform transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
           flex flex-col shadow-xl
         `}
       >
@@ -115,7 +115,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="flex-1 min-h-screen print:ml-0 print:bg-white print:h-auto">
+      <main className="flex-1 min-w-0 min-h-screen print:ml-0 print:bg-white print:h-auto">
         <div className="w-full mx-auto print:max-w-none print:p-0">
           {children}
         </div>

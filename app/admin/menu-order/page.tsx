@@ -78,7 +78,7 @@ export default function MenuOrderPage() {
 
   return (
     <div className="space-y-5 max-w-2xl">
-      <div className="pt-12 md:pt-0">
+      <div className="pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-gray-800">⚙️ メニュー並び替え</h1>
         <p className="text-sm text-gray-500 mt-1">
           ドラッグ（スマホは長押し）または ↑↓ ボタンで並べ替えて「保存」してください。一般画面と管理画面の両方のメニューに反映されます。

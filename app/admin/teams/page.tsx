@@ -215,7 +215,7 @@ export default function AdminTeamsDnDPage() {
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <div className="space-y-5 pt-12 md:pt-0">
+      <div className="space-y-5 pt-12 lg:pt-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">📋 チーム・配置管理</h1>
@@ -260,15 +260,15 @@ export default function AdminTeamsDnDPage() {
         {loading ? (
           <div className="text-center py-10 text-gray-400">読み込み中...</div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex flex-col xl:flex-row gap-6 items-start">
 
             {/* 左カラム: 未割り当て（スタッフ） */}
-            <div className="w-full lg:w-56 shrink-0 order-2 lg:order-1">
+            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1">
               <DroppableUnassigned persons={unassigned} role="STAFF" title="スタッフ" />
             </div>
 
             {/* 中央カラム: チームグリッド */}
-            <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 order-1 lg:order-2">
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-4 order-1 xl:order-2">
               {teams.map(team => (
                 <div key={team.id} className="relative group">
                   {editingTeamId === team.id ? (
@@ -317,7 +317,7 @@ export default function AdminTeamsDnDPage() {
             </div>
 
             {/* 右カラム: 未割り当て（利用者） */}
-            <div className="w-full lg:w-56 shrink-0 order-3 lg:order-3">
+            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3">
               <DroppableUnassigned persons={unassigned} role="USER" title="利用者" />
             </div>
 
@@ -379,7 +379,7 @@ function DroppableUnassigned({ persons, role, title }: { persons: Person[], role
       <h3 className="font-bold text-gray-800 mb-1">未割り当て ({title}) - {filtered.length}名</h3>
       <p className="text-xs text-gray-500 mb-3 print:hidden">ここへドロップするとチームから外れます</p>
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-1 gap-3 max-h-[400px] lg:max-h-[600px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1 gap-3 max-h-[400px] xl:max-h-[600px] overflow-y-auto pr-1">
         {filtered.map(p => (
           <DraggablePerson key={p.id} person={p} />
         ))}
@@ -418,7 +418,7 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
         {...listeners}
         {...attributes}
         className={`
-          flex items-center gap-2 p-2 w-full rounded-md border-2 shadow-sm cursor-grab touch-none transition-colors
+          flex items-center gap-2 p-2 w-full rounded-md border-2 shadow-sm cursor-grab touch-manipulation transition-colors
           ${bgClass}
           ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
           ${isOverlay ? 'shadow-2xl scale-105 rotate-2 cursor-grabbing z-50' : ''}

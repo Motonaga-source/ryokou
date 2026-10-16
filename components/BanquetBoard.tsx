@@ -133,30 +133,33 @@ export default function BanquetBoard({ editable = false }: { editable?: boolean 
             <UnassignedPanel persons={unassigned} editable={editable} />
           )}
 
-          {/* 席次表 */}
-          <div className="flex-1 w-full overflow-x-auto pb-2">
-            <div className="min-w-[680px]">
-              <div className="grid grid-cols-3 gap-4">
-                {BANQUET_COLUMNS.map(column => (
-                  <div key={column.key} className="rounded-2xl bg-amber-50 border-2 border-amber-200 p-3 space-y-3">
-                    <div className="text-center text-xs font-bold text-amber-900">{column.label}</div>
-                    {tablesOf(column.key).map(table => (
-                      <div key={table.key} className="rounded-xl border-2 border-amber-700/30 bg-amber-100/70 p-1.5">
-                        <div className="text-[10px] font-semibold text-amber-800 mb-1 px-0.5">{table.label}</div>
-                        <div className="grid grid-cols-2 gap-1">
-                          {table.seatIds.map(seatId => (
-                            <Seat key={seatId} seatId={seatId} person={personBySeat.get(seatId)} editable={editable} />
-                          ))}
+          {/* 席次表: スマホ・タブレットでは画面は拡大縮小せず、この枠の中だけを横スクロールする */}
+          <div className="flex-1 min-w-0 w-full">
+            <p className="xl:hidden text-xs text-gray-500 mb-1.5 print:hidden">← 席次表は左右にスクロールできます →</p>
+            <div className="w-full overflow-x-auto overscroll-x-contain rounded-2xl pb-2">
+              <div className="min-w-[800px]">
+                <div className="grid grid-cols-3 gap-4">
+                  {BANQUET_COLUMNS.map(column => (
+                    <div key={column.key} className="rounded-2xl bg-amber-50 border-2 border-amber-200 p-3 space-y-3">
+                      <div className="text-center text-xs font-bold text-amber-900">{column.label}</div>
+                      {tablesOf(column.key).map(table => (
+                        <div key={table.key} className="rounded-xl border-2 border-amber-700/30 bg-amber-100/70 p-1.5">
+                          <div className="text-[10px] font-semibold text-amber-800 mb-1 px-0.5">{table.label}</div>
+                          <div className="grid grid-cols-2 gap-1">
+                            {table.seatIds.map(seatId => (
+                              <Seat key={seatId} seatId={seatId} person={personBySeat.get(seatId)} editable={editable} />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
 
-              {/* 舞台 */}
-              <div className="mt-4 rounded-xl bg-gradient-to-r from-red-800 via-red-600 to-red-800 py-3 text-center text-white font-bold tracking-[1em] shadow-md">
-                舞台
+                {/* 舞台 */}
+                <div className="mt-4 rounded-xl bg-gradient-to-r from-red-800 via-red-600 to-red-800 py-3 text-center text-white font-bold tracking-[1em] shadow-md">
+                  舞台
+                </div>
               </div>
             </div>
           </div>

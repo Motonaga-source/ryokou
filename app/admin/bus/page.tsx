@@ -231,7 +231,7 @@ export default function AdminBusDnDPage() {
           </div>
         )}
 
-        <div className="pt-12 md:pt-0">
+        <div className="pt-12 lg:pt-0">
           <h1 className="text-2xl font-bold text-gray-800">🚌 座席・車両割当て (DnD編集)</h1>
         </div>
 
@@ -257,15 +257,15 @@ export default function AdminBusDnDPage() {
         {loading ? (
           <div className="text-center py-10 text-gray-400">読み込み中...</div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
+          <div className="flex flex-col xl:flex-row gap-6 items-start">
             
             {/* 左カラム: 未割り当て（スタッフ） */}
-            <div className="w-full lg:w-56 shrink-0 order-2 lg:order-1">
+            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1">
               <UnassignedList persons={persons} tab={activeTab} role="STAFF" title="スタッフ" />
             </div>
 
             {/* 中央カラム */}
-            <div className="flex-1 w-full order-1 lg:order-2 flex justify-center">
+            <div className="flex-1 w-full order-1 xl:order-2 flex justify-center">
               {activeTab === 'BUS' ? (
                 <div className="bg-gray-100 p-4 sm:p-6 rounded-[3rem] border-[6px] border-gray-700 shadow-2xl w-full max-w-2xl mx-auto flex flex-col relative">
                   
@@ -366,7 +366,7 @@ export default function AdminBusDnDPage() {
             </div>
 
             {/* 右カラム: 未割り当て（利用者） */}
-            <div className="w-full lg:w-56 shrink-0 order-3 lg:order-3">
+            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3">
               <UnassignedList persons={persons} tab={activeTab} role="USER" title="利用者" />
             </div>
 
@@ -463,7 +463,7 @@ function UnassignedList({ persons, tab, role, title }: { persons: Person[], tab:
       <h2 className="font-bold text-gray-800 mb-1">未割り当て ({title})</h2>
       <p className="text-xs text-blue-600 font-bold mb-3">{unassigned.length}名</p>
       
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-1 gap-2 max-h-[300px] lg:max-h-[800px] overflow-y-auto pr-1">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-1 gap-2 max-h-[300px] xl:max-h-[800px] overflow-y-auto pr-1">
         {unassigned.map(p => (
           <DraggablePerson key={p.id} person={p} />
         ))}
@@ -495,7 +495,7 @@ function DraggablePerson({ person, isOverlay = false, inSeat = false }: { person
         {...listeners}
         {...attributes}
         className={`
-          w-full h-full flex flex-col items-center justify-center cursor-grab touch-none mt-2
+          w-full h-full flex flex-col items-center justify-center cursor-grab touch-manipulation mt-2
           ${isDragging ? 'opacity-30' : 'opacity-100'}
         `}
       >
@@ -519,7 +519,7 @@ function DraggablePerson({ person, isOverlay = false, inSeat = false }: { person
       {...listeners}
       {...attributes}
       className={`
-        px-2 py-1 rounded-xl border-2 shadow-sm cursor-grab touch-none inline-flex items-center gap-1 w-full lg:w-auto
+        px-2 py-1 rounded-xl border-2 shadow-sm cursor-grab touch-manipulation inline-flex items-center gap-1 w-full xl:w-auto
         ${colorClass}
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
         ${isOverlay ? 'shadow-2xl scale-110 rotate-3 cursor-grabbing z-50 min-h-[36px] md:min-h-[40px]' : 'min-h-[32px]'}

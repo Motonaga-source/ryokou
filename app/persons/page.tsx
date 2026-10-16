@@ -150,7 +150,7 @@ export default function PersonsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="pt-12 md:pt-0 flex justify-between items-end">
+      <div className="pt-12 lg:pt-0 flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">👥 参加者名簿 (編集)</h1>
           <p className="text-gray-500 text-sm mt-1">

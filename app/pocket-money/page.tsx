@@ -84,7 +84,7 @@ export default function PocketMoneyPage() {
         </div>
       )}
 
-      <div className="pt-12 md:pt-0">
+      <div className="pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-gray-800">💴 小遣い精算</h1>
         <p className="text-gray-500 text-sm mt-1">利用者への支給額・使用額・残額管理</p>
       </div>

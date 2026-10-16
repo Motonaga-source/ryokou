@@ -48,7 +48,7 @@ const PersonCard = forwardRef<HTMLDivElement, Props>(function PersonCard(
         w-full flex items-center shadow-sm border-2 transition-colors
         ${compact ? 'h-full gap-0.5 px-1 py-1 rounded' : 'gap-2 p-2 rounded-md'}
         ${bgClass}
-        ${draggable ? 'cursor-grab touch-none' : ''}
+        ${draggable ? 'cursor-grab touch-manipulation' : ''}
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
         ${isOverlay ? 'shadow-2xl scale-105 rotate-2 cursor-grabbing z-50' : ''}
         ${className}
