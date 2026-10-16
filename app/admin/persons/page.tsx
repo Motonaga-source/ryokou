@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import FishNGBadge from '@/components/FishNGBadge'
 
 interface Person {
   id: number
@@ -10,6 +11,7 @@ interface Person {
   facility: string | null
   notes: string | null
   isWheelchair: boolean
+  isFishNG: boolean
   medication: {
     hasBreakfast: boolean
     hasLunch: boolean
@@ -83,6 +85,7 @@ export default function PersonsPage() {
       facility: person.facility, 
       notes: person.notes,
       isWheelchair: person.isWheelchair,
+      isFishNG: person.isFishNG,
       status: person.participations[0]?.status || '参加'
     })
   }
@@ -285,14 +288,14 @@ export default function PersonsPage() {
                   />
                   <span className="text-sm text-gray-700">♿ 車椅子利用</span>
                 </label>
-                              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
-                    checked={(editForm as any).isWheelchair || false}
-                    onChange={(e) => setEditForm((f) => ({ ...f, isWheelchair: e.target.checked }))}
-                    className="w-4 h-4 accent-pink-500"
+                    checked={editForm.isFishNG || false}
+                    onChange={(e) => setEditForm((f) => ({ ...f, isFishNG: e.target.checked }))}
+                    className="w-4 h-4 accent-orange-500"
                   />
-                  <span className="text-sm text-gray-700">♿ 車椅子利用</span>
+                  <span className="text-sm text-gray-700">🐟❌ 魚料理NG</span>
                 </label>
 <button
                  onClick={handleSave}
@@ -375,6 +378,15 @@ export default function PersonsPage() {
                     />
                     <span className="text-sm text-gray-700">♿️ 車椅子利用</span>
                   </label>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={editForm.isFishNG || false}
+                      onChange={(e) => setEditForm((f) => ({ ...f, isFishNG: e.target.checked }))}
+                      className="w-4 h-4 accent-orange-500"
+                    />
+                    <span className="text-sm text-gray-700">🐟❌ 魚料理NG</span>
+                  </label>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleDelete(person.id)}
@@ -403,6 +415,7 @@ export default function PersonsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-800">{person.isWheelchair && '♿️ '}{person.name}</span>
+                      {person.isFishNG && <FishNGBadge />}
                       {getStatusBadge(person)}
                     </div>
                     {person.medication && (person.medication.hasBreakfast || person.medication.hasLunch || person.medication.hasDinner || person.medication.hasSleep || person.medication.hasAsNeeded) && (

@@ -2,6 +2,7 @@
 type DragStartEvent = any;
 type DragEndEvent = any;
 import { useState, useEffect, useCallback } from 'react';
+import FishNGBadge from '@/components/FishNGBadge';
 
 
 const DndContext = ({children}: any) => <>{children}</>;
@@ -21,6 +22,7 @@ interface Person {
   role: string
   gender: string | null
   isWheelchair?: boolean
+  isFishNG?: boolean
   participations?: any[]
 }
 
@@ -279,6 +281,7 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
           <span className="font-bold text-sm text-gray-800 truncate block">
             {person.name}
           </span>
+          {person.isFishNG && <FishNGBadge />}
         </div>
       </div>
     )

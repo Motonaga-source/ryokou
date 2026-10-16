@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import FishNGBadge from '@/components/FishNGBadge'
 
 interface Person {
   id: number
@@ -10,6 +11,7 @@ interface Person {
   facility: string | null
   notes: string | null
   isWheelchair: boolean
+  isFishNG?: boolean
   medication: {
     hasBreakfast: boolean
     hasLunch: boolean
@@ -389,6 +391,7 @@ export default function PersonsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-gray-800">{person.isWheelchair && '♿️ '}{person.name}</span>
+                      {person.isFishNG && <FishNGBadge />}
                       {getStatusBadge(person)}
                     </div>
                     {person.medication && (person.medication.hasBreakfast || person.medication.hasLunch || person.medication.hasDinner || person.medication.hasSleep || person.medication.hasAsNeeded) && (

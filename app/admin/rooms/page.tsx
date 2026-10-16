@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import FishNGBadge from '@/components/FishNGBadge'
 import {
   DndContext,
   closestCenter,
@@ -20,6 +21,7 @@ interface Person {
   name: string
   gender: string | null
   isWheelchair: boolean
+  isFishNG?: boolean
   role: string
   notes: string | null
   participations?: Array<{ status: string }>
@@ -406,6 +408,7 @@ function DraggablePerson({ person, isOverlay = false }: { person: Person, isOver
           <span className="font-bold text-sm text-gray-800 truncate block">
             {person.name}
           </span>
+          {person.isFishNG && <FishNGBadge />}
           {person.notes && (
             <span className="text-[10px] text-gray-500 truncate ml-1">⚠️{person.notes}</span>
           )}

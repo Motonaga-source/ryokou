@@ -48,6 +48,7 @@ model Person {
   isWheelchair Boolean  @default(false)
   wheelchairSource   String?  // 車椅子の出所: "グレイス貸出" | "持参"
   wheelchairPrepared Boolean  @default(false) // 未使用（旧: 持ち物チェックの準備済み）
+  isFishNG     Boolean  @default(false) // 魚料理NG
   password  String?
   facility  String?
   notes     String?
@@ -205,18 +206,17 @@ model BathingAssignment {
 
 // ===== 宴会場席次 =====
 model BanquetSeatAssignment {
-  id       Int    @id @default(autoincrement())
+  id       Int     @id @default(autoincrement())
   tripId   Int
   personId Int
-  pattern  String // "A" | "B"
-  tableNo  Int?
-  seatNo   Int?
+  seatId   String  // 54席の座席ID（例: "seat-L-1"）。lib/banquet.ts の BANQUET_SEAT_IDS を参照
   notes    String?
 
   trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
 
-  @@unique([tripId, personId, pattern])
+  @@unique([tripId, personId])
+  @@unique([tripId, seatId])
 }
 
 // ===== ブルーメの丘昼食席次 =====

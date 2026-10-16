@@ -102,6 +102,7 @@ export interface BathingPerson {
   role: string
   gender: string | null
   isWheelchair?: boolean
+  isFishNG?: boolean
   banNumber?: number | null
   participations?: { status: string }[]
 }

@@ -44,6 +44,7 @@ export async function POST(request: Request) {
       facility: personData.facility,
       notes: personData.notes,
       isWheelchair: personData.isWheelchair || false,
+      isFishNG: personData.isFishNG || false,
     } 
   })
 

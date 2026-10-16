@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import FishNGBadge from '@/components/FishNGBadge'
 import {
   DndContext,
   MouseSensor,
@@ -21,6 +22,7 @@ interface Person {
   facility: string | null
   gender: string | null
   isWheelchair: boolean
+  isFishNG?: boolean
   busAssignments: BusAssignment[]
   carAssignments: CarAssignment[]
 }
@@ -504,6 +506,7 @@ function DraggablePerson({ person, isOverlay = false, inSeat = false }: { person
           <span className="font-bold text-[10px] text-gray-800 break-words w-full">
             {person.name}
           </span>
+          {person.isFishNG && <FishNGBadge />}
         </div>
       </div>
     )
@@ -528,6 +531,7 @@ function DraggablePerson({ person, isOverlay = false, inSeat = false }: { person
       <span className="font-semibold text-[10px] text-gray-800 whitespace-nowrap truncate w-full">
         {person.name}
       </span>
+      {person.isFishNG && <FishNGBadge />}
     </div>
   )
 }

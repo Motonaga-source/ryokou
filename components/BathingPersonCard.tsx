@@ -1,4 +1,5 @@
 import { forwardRef, type HTMLAttributes, type SyntheticEvent } from 'react'
+import FishNGBadge from '@/components/FishNGBadge'
 import { BAN_NUMBERS, type BanNumber, type BathingPerson } from '@/lib/bathing'
 
 // 班ごとの色（選択中のボタン・閲覧用ラベル）
@@ -63,6 +64,7 @@ const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPers
         <span className="flex-1 min-w-0 truncate block font-bold text-sm text-gray-800">
           {person.name}
         </span>
+        {person.isFishNG && <FishNGBadge />}
       </div>
       {banMode === 'edit' && (
         <div className="shrink-0 flex items-center gap-0.5" role="group" aria-label="班">

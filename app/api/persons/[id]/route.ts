@@ -32,6 +32,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       facility: body.facility,
       notes: body.notes,
       isWheelchair: body.isWheelchair ?? undefined,
+      isFishNG: body.isFishNG ?? undefined,
     },
   })
 
