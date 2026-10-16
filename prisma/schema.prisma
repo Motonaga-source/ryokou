@@ -51,6 +51,7 @@ model Person {
   wheelchairPrepared Boolean  @default(false) // 未使用（旧: 持ち物チェックの準備済み）
   isFishNG     Boolean  @default(false) // 魚料理NG
   pickupMemo   String?  // 集合・送迎の特記事項
+  isRollCalled Boolean  @default(false) // 簡易点呼のチェック状態（履歴なし。点呼のたびに一括クリアして使い回す）
   password  String?
   facility  String?
   notes     String?

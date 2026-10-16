@@ -23,6 +23,8 @@ interface DashboardData {
 }
 
 const quickLinks = [
+  { href: '/staff', label: '自分の担当', icon: '👤', color: 'bg-indigo-50 border-indigo-200 text-indigo-700', desc: '自分の役割をまとめて確認' },
+  { href: '/admin/roll-call', label: '点呼チェック', icon: '📝', color: 'bg-emerald-50 border-emerald-200 text-emerald-700', desc: '乗車時の人数確認' },
   { href: '/vitals', label: 'バイタルチェック', icon: '💊', color: 'bg-red-50 border-red-200 text-red-700', desc: '血圧・体温を記録' },
   { href: '/rooms', label: '部屋割り管理', icon: '🏨', color: 'bg-blue-50 border-blue-200 text-blue-700', desc: '入居者の確認・変更' },
   { href: '/medications', label: '服薬情報', icon: '💉', color: 'bg-purple-50 border-purple-200 text-purple-700', desc: '投薬内容の確認' },

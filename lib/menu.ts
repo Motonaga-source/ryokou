@@ -39,7 +39,8 @@ export const MENU_ITEMS: MenuItem[] = [
   { ...item(PRINT_PATH, '全画面一括印刷', '🖨️', '全画面一括印刷'), adminPath: PRINT_PATH },
 ]
 
-// 並び替え管理画面へのリンク（管理画面のメニュー末尾に固定。並び替えの対象外）
+// 管理画面のメニュー末尾に固定する項目（管理者専用のため一般画面にはなく、並び替えの対象外）
+export const ROLL_CALL_ADMIN_ITEM = { href: '/admin/roll-call', label: '点呼チェック', icon: '📝' }
 export const MENU_ORDER_ADMIN_ITEM = { href: '/admin/menu-order', label: 'メニュー並び替え', icon: '⚙️' }
 
 export function isMenuPath(value: unknown): value is string {

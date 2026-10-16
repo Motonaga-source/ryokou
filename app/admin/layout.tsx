@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { MENU_ORDER_ADMIN_ITEM } from '@/lib/menu'
+import { MENU_ORDER_ADMIN_ITEM, ROLL_CALL_ADMIN_ITEM } from '@/lib/menu'
 import { useMenuItems } from '@/lib/useMenuOrder'
 
 
@@ -11,9 +11,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
-  // 並び替え可能なメニュー + 末尾に「メニュー並び替え」を固定
+  // 並び替え可能なメニュー + 末尾に「点呼チェック」「メニュー並び替え」を固定
   const navItems = [
     ...useMenuItems().map(m => ({ href: m.adminPath, label: m.adminLabel, icon: m.adminIcon ?? m.icon })),
+    ROLL_CALL_ADMIN_ITEM,
     MENU_ORDER_ADMIN_ITEM,
   ]
 
