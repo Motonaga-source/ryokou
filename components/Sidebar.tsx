@@ -15,7 +15,7 @@ export default function Sidebar() {
     <>
       {/* モバイルメニューボタン */}
       <button
-        className="fixed top-4 left-4 z-50 lg:hidden bg-blue-600 text-white p-2 rounded-lg shadow-lg"
+        className="fixed top-4 left-4 z-50 lg:hidden print:hidden bg-blue-600 text-white p-2 rounded-lg shadow-lg"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="メニュー"
       >
@@ -25,7 +25,7 @@ export default function Sidebar() {
       {/* オーバーレイ（モバイル） */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden print:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}

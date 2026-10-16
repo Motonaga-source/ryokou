@@ -269,7 +269,7 @@ function GroupBox({ groupId, editable, colorClass, title, count, warning, person
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-2xl border-4 overflow-hidden transition-colors ${colorClass} ${
+      className={`print-avoid-break rounded-2xl border-4 overflow-hidden transition-colors ${colorClass} ${
         isOver ? 'ring-4 ring-indigo-300 shadow-md' : 'shadow-sm'
       }`}
     >
@@ -302,7 +302,7 @@ function UnassignedPanel({ persons, editable }: { persons: PickupPerson[]; edita
   return (
     <div
       ref={setNodeRef}
-      className={`w-full 2xl:w-64 2xl:shrink-0 2xl:sticky 2xl:top-4 bg-white rounded-2xl border-2 p-4 transition-colors ${
+      className={`print:hidden w-full 2xl:w-64 2xl:shrink-0 2xl:sticky 2xl:top-4 bg-white rounded-2xl border-2 p-4 transition-colors ${
         isOver ? 'border-red-400 bg-red-50 shadow-md' : 'border-gray-200 shadow-sm'
       }`}
     >
@@ -386,7 +386,7 @@ function VehicleSettings({ vehicles, memberCount, onSave }: {
 
   if (!open) {
     return (
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 print:hidden">
         <button
           type="button"
           onClick={start}

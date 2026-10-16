@@ -3,7 +3,24 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 8mm; /* Slightly smaller margin to fit more */
+    margin: 10mm;
+  }
+
+  /* 車椅子のピンクやバッジなどの背景色を白抜けさせずに印刷 */
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 画面操作用のボタン・入力フォームは印刷しない（表示に必要なタブ等は .print-keep で残す） */
+  main button:not(.print-keep),
+  main form:not(.print-keep) {
+    display: none !important;
+  }
+
+  /* 横スクロール用の枠は印刷時に見切れないよう展開 */
+  .overflow-x-auto {
+    overflow: visible !important;
   }
   
   html, body {
@@ -75,8 +92,15 @@
   }
 
   /* Avoid breaking inner boxes across pages */
-  .group {
+  .group,
+  .print-avoid-break {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
+}
+
+/* 印刷時にページをまたいで分割させたくない要素（カード・枠など）に付ける */
+.print-avoid-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
 }

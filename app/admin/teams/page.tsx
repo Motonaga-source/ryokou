@@ -263,12 +263,12 @@ export default function AdminTeamsDnDPage() {
           <div className="flex flex-col xl:flex-row gap-6 items-start">
 
             {/* 左カラム: 未割り当て（スタッフ） */}
-            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1">
+            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1 print:hidden">
               <DroppableUnassigned persons={unassigned} role="STAFF" title="スタッフ" />
             </div>
 
             {/* 中央カラム: チームグリッド */}
-            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-4 order-1 xl:order-2">
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3 gap-4 order-1 xl:order-2 print:w-full">
               {teams.map(team => (
                 <div key={team.id} className="relative group">
                   {editingTeamId === team.id ? (
@@ -317,7 +317,7 @@ export default function AdminTeamsDnDPage() {
             </div>
 
             {/* 右カラム: 未割り当て（利用者） */}
-            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3">
+            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3 print:hidden">
               <DroppableUnassigned persons={unassigned} role="USER" title="利用者" />
             </div>
 
@@ -340,7 +340,7 @@ function DroppableTeam({ team, colorClass }: { team: Team, colorClass: string })
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-2xl border-4 transition-colors overflow-hidden ${
+      className={`print-avoid-break rounded-2xl border-4 transition-colors overflow-hidden ${
         isOver ? 'border-indigo-400 shadow-md opacity-80' : 'shadow-sm'
       } ${colorClass}`}
     >

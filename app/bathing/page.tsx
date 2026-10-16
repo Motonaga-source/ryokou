@@ -39,19 +39,19 @@ export default function BathingPage() {
         <div className="flex flex-col xl:flex-row gap-6 items-start">
 
           {/* 左カラム: 未割り当て（スタッフ） */}
-          <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1">
+          <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1 print:hidden">
             <UnassignedList persons={unassigned} role="STAFF" title="スタッフ" />
           </div>
 
           {/* 中央カラム: 入浴グループ（男湯・女湯を左右に並べる） */}
-          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3 order-1 xl:order-2">
+          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3 order-1 xl:order-2 print:w-full">
             {BATHING_ROLES.map(r => (
               <GroupCard key={r.value} group={r} persons={groups[r.value]} />
             ))}
           </div>
 
           {/* 右カラム: 未割り当て（利用者） */}
-          <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3">
+          <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3 print:hidden">
             <UnassignedList persons={unassigned} role="USER" title="利用者" />
           </div>
 
@@ -66,7 +66,7 @@ function GroupCard({ group, persons }: { group: (typeof BATHING_ROLES)[number], 
   const staffCount = persons.filter(p => p.role === 'STAFF').length
 
   return (
-    <div className={`rounded-2xl border-4 overflow-hidden shadow-sm ${group.colorClass}`}>
+    <div className={`print-avoid-break rounded-2xl border-4 overflow-hidden shadow-sm ${group.colorClass}`}>
       <div className="px-4 py-3 md:py-2 bg-white/50 border-b-2 border-black/10">
         <div className="font-bold text-base text-gray-800 flex justify-between items-center gap-2">
           <span className="min-w-0 flex items-center gap-1.5">

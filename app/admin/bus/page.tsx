@@ -238,7 +238,7 @@ export default function AdminBusDnDPage() {
         <div className="flex gap-2 bg-gray-200 p-1 rounded-2xl w-max">
           <button
             onClick={() => setActiveTab('BUS')}
-            className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${
+            className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === 'BUS' ? 'print-keep' : ''} ${
               activeTab === 'BUS' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:bg-gray-300'
             }`}
           >
@@ -246,7 +246,7 @@ export default function AdminBusDnDPage() {
           </button>
           <button
             onClick={() => setActiveTab('CAR')}
-            className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${
+            className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === 'CAR' ? 'print-keep' : ''} ${
               activeTab === 'CAR' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:bg-gray-300'
             }`}
           >
@@ -260,12 +260,12 @@ export default function AdminBusDnDPage() {
           <div className="flex flex-col xl:flex-row gap-6 items-start">
             
             {/* 左カラム: 未割り当て（スタッフ） */}
-            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1">
+            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1 print:hidden">
               <UnassignedList persons={persons} tab={activeTab} role="STAFF" title="スタッフ" />
             </div>
 
             {/* 中央カラム */}
-            <div className="flex-1 w-full order-1 xl:order-2 flex justify-center">
+            <div className="flex-1 w-full order-1 xl:order-2 flex justify-center print:w-full">
               {activeTab === 'BUS' ? (
                 <div className="bg-gray-100 p-4 sm:p-6 rounded-[3rem] border-[6px] border-gray-700 shadow-2xl w-full max-w-2xl mx-auto flex flex-col relative">
                   
@@ -366,7 +366,7 @@ export default function AdminBusDnDPage() {
             </div>
 
             {/* 右カラム: 未割り当て（利用者） */}
-            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3">
+            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3 print:hidden">
               <UnassignedList persons={persons} tab={activeTab} role="USER" title="利用者" />
             </div>
 

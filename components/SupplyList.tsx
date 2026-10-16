@@ -272,7 +272,7 @@ function WheelchairSourceEditor({ persons, onChange }: {
   onChange: (p: WheelchairPerson, source: string | null) => void
 }) {
   return (
-    <details className="mt-2 mb-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50" open={persons.every(p => !p.wheelchairSource)}>
+    <details className="print:hidden mt-2 mb-2 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50" open={persons.every(p => !p.wheelchairSource)}>
       <summary className="px-4 py-2 text-sm font-semibold text-gray-700 cursor-pointer">
         ⚙️ 車椅子の出所（{persons.length}名）
       </summary>

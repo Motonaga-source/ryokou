@@ -162,19 +162,19 @@ export default function AdminBathingPage() {
           <div className="flex flex-col xl:flex-row gap-6 items-start">
 
             {/* 左カラム: 未割り当て（スタッフ） */}
-            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1">
+            <div className="w-full xl:w-56 shrink-0 order-2 xl:order-1 print:hidden">
               <DroppableUnassigned persons={unassigned} role="STAFF" title="スタッフ" />
             </div>
 
             {/* 中央カラム: 入浴グループ（男湯・女湯を左右に並べる） */}
-            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3 order-1 xl:order-2">
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-3 order-1 xl:order-2 print:w-full">
               {BATHING_ROLES.map(r => (
                 <DroppableGroup key={r.value} group={r} persons={groups[r.value]} onBanChange={handleBanChange} />
               ))}
             </div>
 
             {/* 右カラム: 未割り当て（利用者） */}
-            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3">
+            <div className="w-full xl:w-56 shrink-0 order-3 xl:order-3 print:hidden">
               <DroppableUnassigned persons={unassigned} role="USER" title="利用者" />
             </div>
 
@@ -201,7 +201,7 @@ function DroppableGroup({ group, persons, onBanChange }: {
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-2xl border-4 transition-colors overflow-hidden ${
+      className={`print-avoid-break rounded-2xl border-4 transition-colors overflow-hidden ${
         isOver ? 'border-indigo-400 shadow-md opacity-80' : 'shadow-sm'
       } ${group.colorClass}`}
     >

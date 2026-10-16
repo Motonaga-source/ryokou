@@ -125,7 +125,7 @@ export default function RoomsViewPage() {
               ))}
             </div>
 
-            <div className="w-full xl:w-80 shrink-0 space-y-4">
+            <div className="w-full xl:w-80 shrink-0 space-y-4 print:hidden">
               <DroppableUnassigned persons={unassigned} role="STAFF" title="スタッフ" />
               <DroppableUnassigned persons={unassigned} role="USER" title="利用者" />
             </div>
@@ -157,7 +157,7 @@ function DroppableRoom({ room }: { room: RoomWithUsers }) {
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-2xl border-4 transition-colors overflow-hidden ${borderColor} ${bgColor} shadow-sm`}
+      className={`print-avoid-break rounded-2xl border-4 transition-colors overflow-hidden ${borderColor} ${bgColor} shadow-sm`}
     >
       <div className={`px-4 py-3 flex justify-between items-center ${headerColor}`}>
         <h3 className="font-bold text-lg">{room.floor}階 - {room.roomNumber}号室</h3>

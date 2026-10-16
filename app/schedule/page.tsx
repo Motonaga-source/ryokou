@@ -50,7 +50,7 @@ export default function SchedulePage() {
           <button
             key={day}
             onClick={() => setActiveDay(day)}
-            className={`flex-1 py-3 rounded-2xl font-semibold text-sm transition-all ${
+            className={`flex-1 py-3 rounded-2xl font-semibold text-sm transition-all ${activeDay === day ? 'print-keep' : ''} ${
               activeDay === day
                 ? `bg-gradient-to-r ${DAY_COLORS[day]} text-white shadow-lg`
                 : 'bg-white border-2 border-gray-200 text-gray-600'

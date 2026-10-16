@@ -117,7 +117,7 @@ export default function BanquetBoard({ editable = false }: { editable?: boolean 
           <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-2 rounded-lg text-sm">{error}</div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm print:hidden">
           <span className="bg-white border border-gray-200 rounded-full px-3 py-1 text-gray-700">
             配置済み <b>{assignments.filter(a => personById.has(a.personId)).length}</b> / 参加者 {persons.length}名（54席）
           </span>
@@ -136,14 +136,14 @@ export default function BanquetBoard({ editable = false }: { editable?: boolean 
           {/* 席次表: スマホ・タブレットでは画面は拡大縮小せず、この枠の中だけを横スクロールする */}
           <div className="flex-1 min-w-0 w-full">
             <p className="xl:hidden text-xs text-gray-500 mb-1.5 print:hidden">← 席次表は左右にスクロールできます →</p>
-            <div className="w-full overflow-x-auto overscroll-x-contain rounded-2xl pb-2">
-              <div className="min-w-[800px]">
-                <div className="grid grid-cols-3 gap-4">
+            <div className="w-full overflow-x-auto overscroll-x-contain rounded-2xl pb-2 print:overflow-visible print:pb-0">
+              <div className="min-w-[800px] print:min-w-0">
+                <div className="grid grid-cols-3 gap-4 print:gap-2">
                   {BANQUET_COLUMNS.map(column => (
-                    <div key={column.key} className="rounded-2xl bg-amber-50 border-2 border-amber-200 p-3 space-y-3">
+                    <div key={column.key} className="rounded-2xl bg-amber-50 border-2 border-amber-200 p-3 space-y-3 print:p-1.5 print:space-y-1.5">
                       <div className="text-center text-xs font-bold text-amber-900">{column.label}</div>
                       {tablesOf(column.key).map(table => (
-                        <div key={table.key} className="rounded-xl border-2 border-amber-700/30 bg-amber-100/70 p-1.5">
+                        <div key={table.key} className="print-avoid-break rounded-xl border-2 border-amber-700/30 bg-amber-100/70 p-1.5 print:p-1">
                           <div className="text-[10px] font-semibold text-amber-800 mb-1 px-0.5">{table.label}</div>
                           <div className="grid grid-cols-2 gap-1">
                             {table.seatIds.map(seatId => (
@@ -203,7 +203,7 @@ function UnassignedPanel({ persons, editable }: { persons: BanquetPerson[]; edit
   return (
     <div
       ref={setNodeRef}
-      className={`w-full 2xl:w-64 2xl:shrink-0 2xl:sticky 2xl:top-4 bg-white rounded-2xl border-2 p-4 transition-colors ${
+      className={`print:hidden w-full 2xl:w-64 2xl:shrink-0 2xl:sticky 2xl:top-4 bg-white rounded-2xl border-2 p-4 transition-colors ${
         isOver ? 'border-red-400 bg-red-50 shadow-md' : 'border-gray-200 shadow-sm'
       }`}
     >

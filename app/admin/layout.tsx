@@ -29,7 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen bg-gray-50">
       <button
-        className="fixed top-4 left-4 z-50 lg:hidden bg-slate-800 text-white p-2 rounded-lg shadow-lg"
+        className="fixed top-4 left-4 z-50 lg:hidden print:hidden bg-slate-800 text-white p-2 rounded-lg shadow-lg"
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? '✕' : '☰'}
@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden print:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}

@@ -48,7 +48,7 @@ const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPers
       ref={ref}
       {...rest}
       className={`
-        w-full flex items-center gap-2 p-2 rounded-md shadow-sm border-2 transition-colors
+        print-avoid-break w-full flex items-center gap-2 p-2 rounded-md shadow-sm border-2 transition-colors
         ${bgClass}
         ${draggable ? 'cursor-grab touch-manipulation' : ''}
         ${isDragging && !isOverlay ? 'opacity-30' : 'opacity-100'}
@@ -67,7 +67,7 @@ const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPers
         {person.isFishNG && <FishNGBadge />}
       </div>
       {banMode === 'edit' && (
-        <div className="shrink-0 flex items-center gap-0.5" role="group" aria-label="班">
+        <div className="shrink-0 flex items-center gap-0.5 print:hidden" role="group" aria-label="班">
           {BAN_NUMBERS.map(n => {
             const active = person.banNumber === n
             return (
@@ -95,8 +95,8 @@ const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPers
           })}
         </div>
       )}
-      {banMode === 'label' && person.banNumber && BAN_STYLES[person.banNumber as BanNumber] && (
-        <span className={`shrink-0 px-1.5 py-0.5 rounded border text-[11px] font-bold leading-none ${BAN_STYLES[person.banNumber as BanNumber]}`}>
+      {banMode && person.banNumber && BAN_STYLES[person.banNumber as BanNumber] && (
+        <span className={`shrink-0 px-1.5 py-0.5 rounded border text-[11px] font-bold leading-none ${banMode === 'edit' ? 'hidden print:inline' : ''} ${BAN_STYLES[person.banNumber as BanNumber]}`}>
           {person.banNumber}班
         </span>
       )}

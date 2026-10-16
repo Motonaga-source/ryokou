@@ -45,7 +45,7 @@ const PersonCard = forwardRef<HTMLDivElement, Props>(function PersonCard(
       {...rest}
       title={person.name}
       className={`
-        w-full flex items-center shadow-sm border-2 transition-colors
+        print-avoid-break w-full flex items-center shadow-sm border-2 transition-colors
         ${compact ? 'h-full gap-0.5 px-1 py-1 rounded' : 'gap-2 p-2 rounded-md'}
         ${bgClass}
         ${draggable ? 'cursor-grab touch-manipulation' : ''}
