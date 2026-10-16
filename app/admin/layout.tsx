@@ -14,6 +14,7 @@ const navItems = [
   { href: '/admin/teams', label: 'チーム・配置 (編集)', icon: '📋' },
   { href: '/admin/bathing', label: '入浴管理 (編集)', icon: '♨️' },
   { href: '/admin/schedule', label: 'スケジュール (編集)', icon: '🗓️' },
+  { href: '/admin/supplies', label: '持ち物 (編集)', icon: '🎒' },
   { href: '/admin/pocket-money', label: '小遣い精算 (編集)', icon: '💴' },
 ]
 

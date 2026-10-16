@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { withSortOrder } from './schedule-data'
+import { SUPPLY_DATA } from './supply-data'
 
 const prisma = new PrismaClient()
 
@@ -474,28 +475,8 @@ async function main() {
   console.log(`✅ 小遣い精算 ${pmCount}件作成`)
 
   // ===== 11. SupplyItems（持ち物）=====
-  const supplyData = [
-    { itemName: 'グローブ', quantity: '各スタッフ分', facility: 'グレイス' },
-    { itemName: '箱ティッシュ', quantity: '各スタッフ分', facility: 'グレイス' },
-    { itemName: '着替え', quantity: '必要分', facility: 'グレイス' },
-    { itemName: 'キッチンバサミ', quantity: '6本', facility: 'グレイス' },
-    { itemName: 'オムツ', quantity: '必要分', facility: 'グレイス' },
-    { itemName: 'パット（小・大）', quantity: '必要分', facility: 'グレイス' },
-    { itemName: 'パット（フラット）', quantity: '必要分', facility: 'グレイス' },
-    { itemName: '食後薬', quantity: '各利用者分', facility: 'グレイス', category: '薬' },
-    { itemName: 'ゴミ袋（小）', quantity: '各スタッフ分', facility: 'グレイス' },
-    { itemName: '各利用者の薬（瓜西HS）', quantity: '利用者分', facility: '瓜破西', category: '薬', notes: '岡田担当' },
-    { itemName: '各利用者の薬（瓜西CH）', quantity: '利用者分', facility: '瓜破西', category: '薬', notes: '大平担当' },
-    { itemName: '各利用者の薬（グレイス）', quantity: '利用者分', facility: 'グレイス', category: '薬', notes: '片山担当' },
-    { itemName: '各利用者の薬（ドルチェ）', quantity: '利用者分', facility: 'ドルチェ', category: '薬', notes: '種村担当' },
-  ]
-
-  for (const s of supplyData) {
-    await prisma.supplyItem.create({
-      data: { tripId: trip.id, ...s },
-    })
-  }
-  console.log(`✅ 持ち物 ${supplyData.length}件作成`)
+  await prisma.supplyItem.createMany({ data: SUPPLY_DATA.map((s) => ({ tripId: trip.id, ...s })) })
+  console.log(`✅ 持ち物 ${SUPPLY_DATA.length}件作成`)
 
   console.log('\n🎉 全シードデータ投入完了！')
   console.log(`  Trip: 1件`)
@@ -507,7 +488,7 @@ async function main() {
   console.log(`  Schedule: ${schedules.length}件`)
   console.log(`  BathingAssignment: ${bathCount}件`)
   console.log(`  PocketMoneyRecord: ${pmCount}件`)
-  console.log(`  SupplyItem: ${supplyData.length}件`)
+  console.log(`  SupplyItem: ${SUPPLY_DATA.length}件`)
 }
 
 main()

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "db:update-schedule": "ts-node scripts/update-schedule.ts"
+    "db:update-schedule": "ts-node scripts/update-schedule.ts",
+    "db:update-supplies": "ts-node scripts/update-supplies.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
