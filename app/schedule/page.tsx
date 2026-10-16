@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Schedule {
   id: number
@@ -15,19 +15,22 @@ interface Schedule {
 const DAY_COLORS = ['', 'from-blue-500 to-blue-700', 'from-green-500 to-green-700']
 const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 
+async function loadSchedules(): Promise<Schedule[]> {
+  const res = await fetch('/api/schedule?tripId=1')
+  return res.json()
+}
+
 export default function SchedulePage() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
   const [activeDay, setActiveDay] = useState(1)
 
-  const fetchSchedules = useCallback(async () => {
-    setLoading(true)
-    const res = await fetch('/api/schedule?tripId=1')
-    setSchedules(await res.json())
-    setLoading(false)
+  useEffect(() => {
+    loadSchedules().then(data => {
+      setSchedules(data)
+      setLoading(false)
+    })
   }, [])
-
-  useEffect(() => { fetchSchedules() }, [fetchSchedules])
 
   const daySchedules = schedules.filter((s) => s.dayNo === activeDay)
 
@@ -66,7 +69,7 @@ export default function SchedulePage() {
           <div className="absolute left-[52px] top-0 bottom-0 w-0.5 bg-gray-200 md:left-[72px]" />
 
           <div className="space-y-4">
-            {daySchedules.map((s, idx) => {
+            {daySchedules.map((s) => {
               const important = isImportant(s)
               return (
                 <div key={s.id} className="flex gap-4 relative">
@@ -92,7 +95,7 @@ export default function SchedulePage() {
                       {important && '⚠️ '}{s.location}
                     </h3>
                     {s.description && (
-                      <p className={`text-xs mt-1.5 leading-relaxed ${important ? 'text-red-700' : 'text-gray-600'}`}>
+                      <p className={`text-xs mt-1.5 leading-relaxed whitespace-pre-wrap ${important ? 'text-red-700' : 'text-gray-600'}`}>
                         {s.description}
                       </p>
                     )}

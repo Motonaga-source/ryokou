@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { withSortOrder } from './schedule-data'
 
 const prisma = new PrismaClient()
 
@@ -345,38 +346,9 @@ async function main() {
   console.log(`✅ 部屋割り ${assignCount}件作成`)
 
   // ===== 8. Schedule（スケジュール）=====
-  const day1Schedules = [
-    { timeLabel: '7:30', location: 'グレイス・瓜破西', description: '各利用者のトイレ誘導をお願いします。', assignedTo: '全員', sortOrder: 1 },
-    { timeLabel: '8:00', location: 'グレイス付近に大型バス配車', description: 'グレイス集合の利用者様が乗車。乗車完了後、ひごペット前へバス移動。', sortOrder: 2 },
-    { timeLabel: '8:30', location: 'ひごペット前 出発', description: '瓜破西集合の利用者様が乗車後、出発。途中でトイレ休憩あり。', sortOrder: 3 },
-    { timeLabel: '10:30', location: 'レストラン風月 到着', description: 'チーム割を確認し、利用者様の昼食後の内服薬を片山から預かる。', assignedTo: '片山（薬管理）', sortOrder: 4 },
-    { timeLabel: '11:00', location: '昼食開始', description: '座席は決まっていません', sortOrder: 5 },
-    { timeLabel: '12:00', location: 'レストラン風月 出発', sortOrder: 6 },
-    { timeLabel: '12:12', location: 'ミシガンクルーズ 到着', description: 'クルーズ船に乗船しない方は、近くのカフェで待機。松本さんが船苦手な方対応：菅原様・山内様', sortOrder: 7 },
-    { timeLabel: '15:00', location: 'ミシガンクルーズ大津港 出発', description: '【全員共通】利用者様が購入されたものには、復路などでマジックで名前を記入してください。', assignedTo: '全員', sortOrder: 8 },
-    { timeLabel: '15:30', location: 'ホテル 到着', description: '1. 部屋割を確認し、各利用者様の荷物をお部屋まで運ぶ。2. バイタルチェックのため、利用者様・職員は部屋で待機。', assignedTo: '全員', sortOrder: 9 },
-    { timeLabel: '15:30以降', location: 'バイタルチェック', description: '4階担当：平・明角 / 3階担当：片山・佐藤根', assignedTo: '平・明角・片山・佐藤根', sortOrder: 10 },
-    { timeLabel: 'バイタルチェック後', location: '入浴介助開始', description: '別紙「入浴 担当」を確認し、入浴介助を開始。', assignedTo: '別紙参照「入浴 担当」', sortOrder: 11 },
-    { timeLabel: '18:00', location: '宴会場へ移動・宴会開始', description: '別紙「宴会 席順」を確認し、席への誘導をお願いします。アルコール提供NG：玉井様、仲様。夕食後の薬は、各部屋の担当者が片山から預かる。', assignedTo: '全員 / 片山（薬管理）', sortOrder: 12 },
-    { timeLabel: '宴会中', location: 'トイレ清掃', description: '担当者が決まっているので、確認し清掃をお願いします。', assignedTo: '別紙参照「持ち物」', sortOrder: 13 },
-    { timeLabel: '【重要】', location: '（眠前薬について）', description: 'アルコールを飲まれる眠前薬のある方は、服薬を中止してください。', assignedTo: '全員', sortOrder: 14 },
-    { timeLabel: '20:00', location: '宴会終了', description: '各自部屋に戻る。365号室で二次会を実施（希望者のみ）。', sortOrder: 15 },
-    { timeLabel: '【重要】', location: '（夜間の行動）', description: 'ホテルの外に出るのは禁止です。', assignedTo: '全員', sortOrder: 16 },
-  ]
-
-  const day2Schedules = [
-    { timeLabel: '7:30〜9:00', location: '朝食', description: '各部屋のスタッフはこの時間内に朝食を済ませてください（自由に時間を取ってOK）。', assignedTo: '各部屋担当者', sortOrder: 1 },
-    { timeLabel: '16:10', location: 'グレイス付近に停車', description: 'グレイスから出発したスタッフはここで下車し、荷物と利用者様をグレイスまで送ってください。', assignedTo: 'グレイス出発スタッフ', sortOrder: 2 },
-    { timeLabel: '16:40', location: 'ひごペット前に停車', description: '瓜破西から出発したスタッフはここで下車し、荷物と利用者様を瓜破西までお送りください。', assignedTo: '瓜破西出発スタッフ', sortOrder: 3 },
-  ]
-
-  for (const s of day1Schedules) {
-    await prisma.schedule.create({ data: { tripId: trip.id, dayNo: 1, ...s } })
-  }
-  for (const s of day2Schedules) {
-    await prisma.schedule.create({ data: { tripId: trip.id, dayNo: 2, ...s } })
-  }
-  console.log(`✅ スケジュール ${day1Schedules.length + day2Schedules.length}件作成`)
+  const schedules = withSortOrder()
+  await prisma.schedule.createMany({ data: schedules.map((s) => ({ tripId: trip.id, ...s })) })
+  console.log(`✅ スケジュール ${schedules.length}件作成`)
 
   // ===== 9. BathingAssignment（入浴担当）=====
   const bathingData: Array<{ name: string; category: string }> = [
@@ -532,7 +504,7 @@ async function main() {
   console.log(`  TripParticipation: ${partCount}件`)
   console.log(`  Room: ${rooms.length}室`)
   console.log(`  RoomAssignment: ${assignCount}件`)
-  console.log(`  Schedule: ${day1Schedules.length + day2Schedules.length}件`)
+  console.log(`  Schedule: ${schedules.length}件`)
   console.log(`  BathingAssignment: ${bathCount}件`)
   console.log(`  PocketMoneyRecord: ${pmCount}件`)
   console.log(`  SupplyItem: ${supplyData.length}件`)
