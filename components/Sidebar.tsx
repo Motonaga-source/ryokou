@@ -55,7 +55,7 @@ export default function Sidebar() {
           <div className="text-2xl mb-1">✈️</div>
           <h1 className="text-lg font-bold leading-tight">旅行管理システム</h1>
           <p className="text-blue-300 text-xs mt-1">滋賀１泊旅行</p>
-          <p className="text-blue-300 text-xs">10/23 〜 10/24</p>
+          <p className="text-blue-300 text-xs">10/29 〜 10/30</p>
         </div>
 
         {/* ナビゲーション */}

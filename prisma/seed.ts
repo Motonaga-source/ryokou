@@ -12,8 +12,8 @@ async function main() {
     create: {
       name: '滋賀１泊旅行',
       destination: '滋賀県',
-      startDate: new Date('2024-10-23T07:30:00+09:00'),
-      endDate: new Date('2024-10-24T17:00:00+09:00'),
+      startDate: new Date('2026-10-29T07:30:00+09:00'),
+      endDate: new Date('2026-10-30T17:00:00+09:00'),
       travelFee: 44000,
       pocketMoney: 5000,
       notes: 'レストラン風月・ミシガンクルーズ・ブルーメの丘',

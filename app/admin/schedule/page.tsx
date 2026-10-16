@@ -13,7 +13,7 @@ interface Schedule {
 }
 
 const DAY_COLORS = ['', 'from-blue-500 to-blue-700', 'from-green-500 to-green-700']
-const DAY_NAMES = ['', '1日目（10/23・木）', '2日目（10/24・金）']
+const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 
 export default function SchedulePage() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
