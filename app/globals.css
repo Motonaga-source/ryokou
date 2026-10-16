@@ -18,80 +18,18 @@
     display: none !important;
   }
 
-  /* 横スクロール用の枠は印刷時に見切れないよう展開 */
-  .overflow-x-auto {
-    overflow: visible !important;
-  }
-  
-  html, body {
-    width: 210mm;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    /* Zoom out to fit content into a single page */
-    zoom: 0.65; 
-  }
-  
-  /* Firefox fallback for zoom */
-  @-moz-document url-prefix() {
-    body {
-      transform: scale(0.65);
-      transform-origin: top left;
-      width: 153%; /* 1 / 0.65 */
-    }
-  }
-
-  /* Reset scrollable areas so they expand instead of scrolling/clipping */
+  /* スクロール枠は印刷時に見切れないよう展開 */
+  .overflow-x-auto,
   .overflow-y-auto {
     overflow: visible !important;
     max-height: none !important;
   }
-  
-  /* Prevent large empty spaces or weird breaks */
+
   main {
     height: auto !important;
     min-height: auto !important;
   }
 
-  /* Force side-by-side flex layout for lg screens even on print */
-  .lg\:flex-row {
-    flex-direction: row !important;
-  }
-  .xl\:flex-row {
-    flex-direction: row !important;
-  }
-  .xl\:w-56 {
-    width: 14rem !important;
-  }
-  .xl\:w-80 {
-    width: 20rem !important;
-  }
-  .xl\:order-1 { order: 1 !important; }
-  .xl\:order-2 { order: 2 !important; }
-  .xl\:order-3 { order: 3 !important; }
-  .lg\:w-56 {
-    width: 14rem !important; /* 56 * 0.25rem = 14rem */
-  }
-  .lg\:w-80 {
-    width: 20rem !important; /* 80 * 0.25rem = 20rem */
-  }
-  
-  /* Force multiple columns on print for Teams/Rooms grids */
-  .xl\:grid-cols-4 {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  }
-  .lg\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-  
-  /* Reduce huge minimum heights that waste space */
-  .min-h-\[300px\] {
-    min-height: 150px !important;
-  }
-  .min-h-\[400px\] {
-    min-height: 200px !important;
-  }
-
-  /* Avoid breaking inner boxes across pages */
   .group,
   .print-avoid-break {
     page-break-inside: avoid !important;
@@ -103,4 +41,10 @@
 .print-avoid-break {
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+/* 印刷時にこの要素の後ろで改ページする（/print の各セクションの区切り） */
+.break-after-page {
+  break-after: page;
+  page-break-after: always;
 }

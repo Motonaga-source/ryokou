@@ -4,12 +4,16 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useMenuItems } from '@/lib/useMenuOrder'
+import { PRINT_PATH } from '@/lib/menu'
 
 
 export default function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const navItems = useMenuItems().map(m => ({ href: m.path, label: m.label, icon: m.icon }))
+
+  // 印刷専用ページではサイドバーを出さない
+  if (pathname === PRINT_PATH) return null
 
   return (
     <>

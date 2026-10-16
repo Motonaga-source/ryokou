@@ -1,6 +1,9 @@
 // サイドバーのメニュー定義（一般画面・管理画面で共通）
 // 並び順は MenuOrder テーブル（管理画面の「メニュー並び替え」で変更）に従い、未登録の項目は末尾に定義順で並ぶ
 
+// 印刷専用まとめページ（サイドバーなしの全幅で表示）
+export const PRINT_PATH = '/print'
+
 export interface MenuItem {
   path: string // 一般画面のパス。管理画面は adminPath
   label: string
@@ -32,6 +35,8 @@ export const MENU_ITEMS: MenuItem[] = [
   item('/schedule', 'スケジュール', '🗓️'),
   item('/supplies', '持ち物', '🎒'),
   item('/pocket-money', '小遣い精算', '💴'),
+  // 印刷専用ページは一般・管理の両方から同じ /print を開く
+  { ...item(PRINT_PATH, '全画面一括印刷', '🖨️', '全画面一括印刷'), adminPath: PRINT_PATH },
 ]
 
 // 並び替え管理画面へのリンク（管理画面のメニュー末尾に固定。並び替えの対象外）
