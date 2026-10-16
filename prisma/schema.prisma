@@ -213,7 +213,7 @@ model PickupVehicle {
   id       Int    @id @default(autoincrement())
   name     String
   capacity Int
-  location String // 所属する乗車拠点: "yuzato" | "grace" | "uriwari-nishi"（lib/pickup.ts を参照）
+  location String // 所属: "yuzato" | "grace" | "uriwari-nishi" | "other"（lib/pickup.ts を参照）
 }
 
 model PickupAssignment {

@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 import { parseVehicleInput, vehicleGroupId } from '@/lib/pickup'
 
 // PUT /api/pickup/vehicles/:id  送迎車の名称・定員・所属拠点を更新（管理者のみ）
-// body: { name: string, capacity: number, location: "yuzato" | "grace" | "uriwari-nishi" }
+// body: { name: string, capacity: number, location: "yuzato" | "grace" | "uriwari-nishi" | "other" }
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession()
   if (!session?.isAdmin) {

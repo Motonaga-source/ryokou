@@ -17,7 +17,9 @@ import PersonCard, { type CardPerson } from '@/components/PersonCard'
 import { sortPersons } from '@/lib/bathing'
 import {
   FAMILY_GROUP,
+  OTHER_LOCATION,
   PICKUP_LOCATIONS,
+  VEHICLE_LOCATIONS,
   isFixedPickupGroupId,
   vehicleGroupId,
   walkGroupId,
@@ -141,6 +143,32 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
   if (loading) return <div className="text-center py-10 text-gray-400">読み込み中...</div>
 
   const familyMembers = membersOf(FAMILY_GROUP.id)
+  const otherVehicles = vehicles.filter(v => v.location === OTHER_LOCATION.id)
+  const vehicleMemberCount = (list: PickupVehicle[]) =>
+    list.reduce((n, v) => n + membersOf(vehicleGroupId(v.id)).length, 0)
+
+  const renderVehicle = (v: PickupVehicle) => {
+    const members = membersOf(vehicleGroupId(v.id))
+    const over = members.length > v.capacity
+    return (
+      <GroupBox
+        key={v.id}
+        groupId={vehicleGroupId(v.id)}
+        editable={editable}
+        colorClass={over ? 'bg-red-50 border-red-500' : 'bg-amber-50 border-amber-300'}
+        title={
+          <span className={over ? 'text-red-700' : ''}>
+            🚗 {v.name}<span className="text-sm font-medium">（定員：{v.capacity}名）</span>
+          </span>
+        }
+        count={
+          <span className={over ? 'text-red-700 font-bold' : ''}>{members.length}/{v.capacity}名</span>
+        }
+        warning={over ? `⚠️ 定員オーバー（+${members.length - v.capacity}名）` : undefined}
+        persons={members}
+      />
+    )
+  }
 
   return (
     <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
@@ -164,8 +192,7 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
             {PICKUP_LOCATIONS.map(location => {
               const walkMembers = membersOf(walkGroupId(location.id))
               const locationVehicles = vehicles.filter(v => v.location === location.id)
-              const total = walkMembers.length +
-                locationVehicles.reduce((n, v) => n + membersOf(vehicleGroupId(v.id)).length, 0)
+              const total = walkMembers.length + vehicleMemberCount(locationVehicles)
               return (
                 <AreaSection
                   key={location.id}
@@ -177,38 +204,17 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
                     groupId={walkGroupId(location.id)}
                     editable={editable}
                     colorClass="bg-green-50 border-green-300"
-                    title={<>🚶 徒歩集合（{location.label}）</>}
+                    title={<>🚶 徒歩でバス停へ移動（{location.label}）</>}
                     count={<>{walkMembers.length}名</>}
                     persons={walkMembers}
                   />
-                  {locationVehicles.map(v => {
-                    const members = membersOf(vehicleGroupId(v.id))
-                    const over = members.length > v.capacity
-                    return (
-                      <GroupBox
-                        key={v.id}
-                        groupId={vehicleGroupId(v.id)}
-                        editable={editable}
-                        colorClass={over ? 'bg-red-50 border-red-500' : 'bg-amber-50 border-amber-300'}
-                        title={
-                          <span className={over ? 'text-red-700' : ''}>
-                            🚗 {v.name}<span className="text-sm font-medium">（定員：{v.capacity}名）</span>
-                          </span>
-                        }
-                        count={
-                          <span className={over ? 'text-red-700 font-bold' : ''}>{members.length}/{v.capacity}名</span>
-                        }
-                        warning={over ? `⚠️ 定員オーバー（+${members.length - v.capacity}名）` : undefined}
-                        persons={members}
-                      />
-                    )
-                  })}
+                  {locationVehicles.map(renderVehicle)}
                 </AreaSection>
               )
             })}
 
-            {/* 乗車拠点を通らない人 */}
-            <AreaSection title="【その他】個別対応" total={familyMembers.length}>
+            {/* 乗車拠点のバス停を通らない人（個別対応・その他の送迎車） */}
+            <AreaSection title="その他（個別対応・その他の送迎車）" total={familyMembers.length + vehicleMemberCount(otherVehicles)}>
               <GroupBox
                 groupId={FAMILY_GROUP.id}
                 editable={editable}
@@ -217,6 +223,7 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
                 count={<>{familyMembers.length}名</>}
                 persons={familyMembers}
               />
+              {otherVehicles.map(renderVehicle)}
             </AreaSection>
           </div>
         </div>
@@ -268,7 +275,7 @@ function GroupBox({ groupId, editable, colorClass, title, count, warning, person
     >
       <div className="px-4 py-2 bg-white/60 border-b-2 border-black/10">
         <div className="font-bold text-base text-gray-800 flex justify-between items-center gap-2">
-          <span className="min-w-0 truncate">{title}</span>
+          <span className="min-w-0 break-words">{title}</span>
           <div className="flex items-center gap-2 text-sm font-medium shrink-0">
             {wheelchairCount > 0 && (
               <span className="bg-pink-200 text-pink-800 px-1.5 py-0.5 rounded-full text-xs">♿️ {wheelchairCount}</span>
@@ -347,7 +354,7 @@ interface VehicleRow {
   location: string
 }
 
-const locationLabel = (id: string) => PICKUP_LOCATIONS.find(l => l.id === id)?.label ?? id
+const locationLabel = (id: string) => VEHICLE_LOCATIONS.find(l => l.id === id)?.label ?? id
 
 function VehicleSettings({ vehicles, memberCount, onSave }: {
   vehicles: PickupVehicle[]
@@ -452,7 +459,7 @@ function VehicleSettings({ vehicles, memberCount, onSave }: {
               <label className="block">
                 <span className="text-xs font-semibold text-gray-600">所属拠点</span>
                 <select value={v.location} onChange={e => update(v.key, { location: e.target.value })} className={inputClass}>
-                  {PICKUP_LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+                  {VEHICLE_LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
                 </select>
               </label>
             </div>

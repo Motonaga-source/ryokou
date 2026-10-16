@@ -1,20 +1,24 @@
 // 集合・送迎管理の定義（API・画面・シードで共通）
 
-// バスの乗車拠点（工程表の巡回順）
+// バスの乗車拠点（工程表の巡回順）。各施設からこのバス停までの移動手段を管理する
 export const PICKUP_LOCATIONS = [
-  { id: 'yuzato', label: '湯里', title: '【第1乗車】湯里エリア', time: '8:30' },
-  { id: 'grace', label: 'グレイス', title: '【第2乗車】グレイス・第二めぐむ保育園エリア', time: '9:00' },
-  { id: 'uriwari-nishi', label: '瓜破西', title: '【第3乗車】瓜破西エリア', time: '9:40' },
+  { id: 'yuzato', label: '湯里', title: '湯里エリア（第1乗車）', time: '8:30' },
+  { id: 'grace', label: 'グレイス', title: 'グレイス・第二めぐむ保育園エリア（第2乗車）', time: '9:00' },
+  { id: 'uriwari-nishi', label: '瓜破西', title: '瓜破西エリア（第3乗車）', time: '9:40' },
 ] as const
 
-export type PickupLocationId = (typeof PICKUP_LOCATIONS)[number]['id']
+// 送迎車の所属先: 乗車拠点のいずれか、または「その他」（バス停を通らない個別の送迎など）
+export const OTHER_LOCATION = { id: 'other', label: 'その他' } as const
+export const VEHICLE_LOCATIONS = [...PICKUP_LOCATIONS, OTHER_LOCATION] as const
 
-export function isPickupLocation(value: unknown): value is PickupLocationId {
-  return PICKUP_LOCATIONS.some(l => l.id === value)
+export type VehicleLocationId = (typeof VEHICLE_LOCATIONS)[number]['id']
+
+export function isVehicleLocation(value: unknown): value is VehicleLocationId {
+  return VEHICLE_LOCATIONS.some(l => l.id === value)
 }
 
 // 割り当て先のグループID
-// - "walk-{拠点}": 各拠点への徒歩集合
+// - "walk-{拠点}": 施設から徒歩でバス停へ移動
 // - "car-{送迎車id}": 送迎車
 // - "family": 乗車拠点を通らない個別対応（家族送迎など）
 export const walkGroupId = (location: string) => `walk-${location}`
@@ -26,7 +30,7 @@ export function vehicleIdOf(groupId: string): number | null {
   return m ? Number(m[1]) : null
 }
 
-// 送迎車以外のグループID（徒歩集合・個別対応）か
+// 送迎車以外のグループID（徒歩でバス停へ移動・個別対応）か
 export function isFixedPickupGroupId(value: unknown): boolean {
   return value === FAMILY_GROUP.id || PICKUP_LOCATIONS.some(l => walkGroupId(l.id) === value)
 }
@@ -61,6 +65,6 @@ export function parseVehicleInput(body: Record<string, unknown>): Omit<PickupVeh
   const capacity = Number(body.capacity)
   if (!name) return '車両名を入力してください'
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > 99) return '定員は1〜99の整数で入力してください'
-  if (!isPickupLocation(body.location)) return '所属拠点が不正です'
+  if (!isVehicleLocation(body.location)) return '所属拠点が不正です'
   return { name, capacity, location: body.location }
 }

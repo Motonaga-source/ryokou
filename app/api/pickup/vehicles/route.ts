@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth'
 import { parseVehicleInput } from '@/lib/pickup'
 
 // POST /api/pickup/vehicles  送迎車を追加（管理者のみ）
-// body: { name: string, capacity: number, location: "yuzato" | "grace" | "uriwari-nishi" }
+// body: { name: string, capacity: number, location: "yuzato" | "grace" | "uriwari-nishi" | "other" }
 export async function POST(request: Request) {
   const session = await getSession()
   if (!session?.isAdmin) {
