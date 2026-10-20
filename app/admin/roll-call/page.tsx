@@ -34,7 +34,9 @@ interface RollCallData {
 interface Group {
   key: string
   title: string
-  members: { person: RollCallPerson; note?: string }[]
+  members: { person: RollCallPerson; note?: string; seat?: { row: number; side: string } }[]
+  // 'bus' のときは実際のバスの座席配置（A・B ｜通路｜ C・D）で表示する
+  layout?: 'bus'
 }
 
 type GroupMode = 'bus' | 'pickup' | 'team' | 'role'
@@ -72,7 +74,7 @@ function buildGroups(data: RollCallData, mode: GroupMode): Group[] {
     const seatOf = new Map(data.busSeats.map(s => [s.personId, s]))
     const used = new Set<number>()
     const vehicles = [...new Set(data.busSeats.map(s => s.vehicle ?? '1号車'))].sort()
-    const groups = vehicles.map(vehicle => {
+    const groups: Group[] = vehicles.map(vehicle => {
       const members = data.persons
         .filter(p => {
           const seat = seatOf.get(p.id)
@@ -83,14 +85,19 @@ function buildGroups(data: RollCallData, mode: GroupMode): Group[] {
           return (sa.rowNo ?? 99) - (sb.rowNo ?? 99) || (sa.seatSide ?? '').localeCompare(sb.seatSide ?? '')
         })
       members.forEach(p => used.add(p.id))
-      return byGroup(
-        vehicle === '1号車' ? '大型バス（1号車）' : `大型バス（${vehicle}）`,
-        `bus-${vehicle}`,
-        members.map(person => {
-          const seat = seatOf.get(person.id)!
-          return { person, note: seat.rowNo && seat.seatSide ? `💺 ${seat.rowNo}列 ${seat.seatSide}席` : '座席番号なし' }
-        }),
-      )
+      return {
+        ...byGroup(
+          vehicle === '1号車' ? '大型バス（1号車）' : `大型バス（${vehicle}）`,
+          `bus-${vehicle}`,
+          members.map(person => {
+            const seat = seatOf.get(person.id)!
+            return seat.rowNo && seat.seatSide
+              ? { person, note: `💺 ${seat.rowNo}列 ${seat.seatSide}席`, seat: { row: seat.rowNo, side: seat.seatSide } }
+              : { person, note: '座席番号なし' }
+          }),
+        ),
+        layout: 'bus' as const,
+      }
     })
     for (const car of data.cars) {
       const ids = new Set(car.memberIds)
@@ -280,11 +287,15 @@ export default function RollCallPage() {
                     {groupDone ? '✅ ' : ''}{groupChecked}/{group.members.length}名
                   </span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {shown.map(({ person, note }) => (
-                    <RollCallButton key={person.id} person={person} note={note} onToggle={() => toggle(person)} />
-                  ))}
-                </div>
+                {group.layout === 'bus' ? (
+                  <BusSeatGrid members={group.members} onlyUnchecked={onlyUnchecked} onToggle={toggle} />
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    {shown.map(({ person, note }) => (
+                      <RollCallButton key={person.id} person={person} note={note} onToggle={() => toggle(person)} />
+                    ))}
+                  </div>
+                )}
               </section>
             )
           })}
@@ -326,6 +337,122 @@ function RollCallButton({ person, note, onToggle }: { person: RollCallPerson; no
           {person.isFishNG && <FishNGBadge />}
         </span>
         {note && <span className="block text-[11px] text-gray-500 truncate">{note}</span>}
+      </span>
+    </button>
+  )
+}
+
+// ===== バス座席レイアウト（横4席＋通路。最後列は A〜E の5席） =====
+
+const BUS_GRID = 'grid grid-cols-[1.25rem_1fr_1fr_0.75rem_1fr_1fr] gap-1'
+const BACK_ROW_SIDES = ['A', 'B', 'C', 'D', 'E']
+
+function BusSeatGrid({ members, onlyUnchecked, onToggle }: {
+  members: Group['members']
+  onlyUnchecked: boolean
+  onToggle: (person: RollCallPerson) => void
+}) {
+  const bySeat = new Map(members.filter(m => m.seat).map(m => [`${m.seat!.row}${m.seat!.side}`, m.person]))
+  const noSeat = members.filter(m => !m.seat)
+  const lastRow = Math.max(12, ...members.map(m => m.seat?.row ?? 0))
+  const rows = Array.from({ length: lastRow }, (_, i) => i + 1) // 前（1列目）から順に
+  const seat = (row: number, side: string) => (
+    <BusSeatButton
+      key={side}
+      code={`${row}${side}`}
+      person={bySeat.get(`${row}${side}`)}
+      dim={onlyUnchecked}
+      onToggle={onToggle}
+    />
+  )
+
+  return (
+    <div className="mx-auto max-w-xl rounded-2xl border-2 border-gray-300 bg-gray-50 p-1.5 sm:p-3">
+      <div className="mb-1.5 rounded bg-gray-200 py-0.5 text-center text-[10px] font-bold text-gray-600">▲ 前方（運転席・乗降口）</div>
+      <div className={`${BUS_GRID} mb-1 text-center text-[10px] font-bold text-gray-500`}>
+        <span />
+        <span>A</span>
+        <span>B</span>
+        <span />
+        <span>C</span>
+        <span>D</span>
+      </div>
+      <div className="space-y-1">
+        {rows.map(row => (
+          <div key={row} className={BUS_GRID}>
+            <span className="flex items-center justify-center rounded bg-gray-200 text-[10px] font-bold text-gray-600">{row}</span>
+            {row === lastRow ? (
+              // 最後列は通路をふさいで5席
+              <div className="col-span-5 grid grid-cols-5 gap-1">{BACK_ROW_SIDES.map(side => seat(row, side))}</div>
+            ) : (
+              <>
+                {seat(row, 'A')}
+                {seat(row, 'B')}
+                <span aria-hidden className="border-x border-dashed border-gray-300" />
+                {seat(row, 'C')}
+                {seat(row, 'D')}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 rounded bg-gray-200 py-0.5 text-center text-[10px] font-bold text-gray-600">後方</div>
+      {noSeat.length > 0 && (
+        <div className="mt-2">
+          <p className="text-[11px] font-semibold text-gray-500 mb-1">座席番号なし（{noSeat.length}名）</p>
+          <div className="grid grid-cols-3 gap-1">
+            {noSeat.map(({ person }) => (
+              <BusSeatButton key={person.id} code="—" person={person} dim={onlyUnchecked} onToggle={onToggle} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// 1座席ぶんのボタン。カード全体をタップして確認済み（緑）／未確認（白）を切り替える
+function BusSeatButton({ code, person, dim, onToggle }: {
+  code: string
+  person?: RollCallPerson
+  dim: boolean // 「未確認のみ表示」のとき、確認済みの席を薄くする（座席の位置は保つ）
+  onToggle: (person: RollCallPerson) => void
+}) {
+  if (!person) {
+    return (
+      <div className="min-h-11 rounded-md border border-dashed border-gray-200 bg-white/50 flex items-center justify-center text-[9px] text-gray-300">
+        {code}
+      </div>
+    )
+  }
+
+  const checked = person.isRollCalled
+  const border = checked
+    ? 'border-green-500'
+    : person.isWheelchair
+    ? 'border-pink-400'
+    : person.role === 'STAFF'
+    ? 'border-blue-300'
+    : 'border-gray-300'
+
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(person)}
+      aria-pressed={checked}
+      title={`${code} ${person.name}`}
+      className={`relative min-h-11 min-w-0 rounded-md border-2 px-1 py-0.5 text-left transition-colors active:scale-95 ${border} ${
+        checked ? 'bg-green-100 text-green-900' : 'bg-white text-gray-800'
+      } ${dim && checked ? 'opacity-25' : ''}`}
+    >
+      <span className="flex items-center justify-between text-[8px] leading-none text-gray-400">
+        <span>{code}</span>
+        {checked && <span className="text-[11px] font-black text-green-600">✓</span>}
+      </span>
+      <span className="mt-0.5 flex flex-wrap items-center gap-x-0.5 text-[11px] font-bold leading-tight">
+        {person.isWheelchair && <span className="text-[9px]">♿️</span>}
+        <span className="min-w-0 break-words [word-break:keep-all]">{person.name}</span>
+        {person.isFishNG && <span className="text-[8px]">🐟❌</span>}
       </span>
     </button>
   )
