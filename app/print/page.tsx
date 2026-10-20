@@ -9,6 +9,7 @@ import { BATHING_ROLES, BATH_BADGES, sortPersons } from '@/lib/bathing'
 import { BANQUET_COLUMNS, tablesOf } from '@/lib/banquet'
 import { FAMILY_GROUP, OTHER_LOCATION, PICKUP_LOCATIONS, vehicleGroupId, walkGroupId } from '@/lib/pickup'
 import { SUPPLY_CATEGORIES, WHEELCHAIR_LOAN } from '@/lib/supplies'
+import { tablesByRow } from '@/lib/lunch'
 import PrintButton from './PrintButton'
 
 export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理システム' }
@@ -16,6 +17,9 @@ export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理シ
 const TRIP_ID = 1
 const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 const BUS_ROWS = Array.from({ length: 12 }, (_, i) => 12 - i)
+
+// 部屋番号が数字だけのときだけ「号室」を付ける（"363トリプルベッド" のような名前はそのまま）
+const roomLabel = (roomNumber: string) => (/^\d+$/.test(roomNumber.trim()) ? `${roomNumber}号室` : roomNumber)
 
 interface P {
   id: number
@@ -28,7 +32,7 @@ interface P {
 }
 
 export default async function PrintPage() {
-  const [trip, persons, schedules, supplies, vehicles, pickups, busSeats, cars, rooms, teams, bathing, banquet] =
+  const [trip, persons, schedules, supplies, vehicles, pickups, busSeats, cars, rooms, teams, bathing, banquet, lunchTables, lunchSeats] =
     await Promise.all([
       prisma.trip.findUnique({ where: { id: TRIP_ID } }),
       prisma.person.findMany({
@@ -46,6 +50,8 @@ export default async function PrintPage() {
       prisma.team.findMany({ where: { tripId: TRIP_ID }, include: { members: true }, orderBy: { id: 'asc' } }),
       prisma.bathingAssignment.findMany({ where: { tripId: TRIP_ID } }),
       prisma.banquetSeatAssignment.findMany({ where: { tripId: TRIP_ID } }),
+      prisma.lunchTable.findMany({ where: { tripId: TRIP_ID } }),
+      prisma.lunchSeatAssignment.findMany({ where: { tripId: TRIP_ID } }),
     ])
 
   // 参加者のみを対象にする（不参加・保留の人の割り当ては表示しない）
@@ -233,7 +239,7 @@ export default async function PrintPage() {
             return (
               <Box
                 key={room.id}
-                title={`${room.roomNumber}号室（${room.floor}F・${room.roomType}）`}
+                title={`${roomLabel(room.roomNumber)}（${room.floor}F・${room.roomType}）`}
                 right={`${members.length}/${room.capacity}名`}
               >
                 <NameList persons={members} />
@@ -306,6 +312,46 @@ export default async function PrintPage() {
           ))}
         </div>
         <div className="mt-3 rounded-lg bg-red-700 text-white text-center font-bold py-1.5 tracking-[1em]">舞台</div>
+      </Section>
+      <PageBreak />
+
+      {/* ⑧ 昼食 席順（テーブル単位） */}
+      <Section title="⑧ 昼食 席順（2日目 13:00 伊賀の里もくもく手づくりファーム）">
+        {(() => {
+          const wheelchairUsers = persons.filter(p => p.isWheelchair).length
+          const slots = lunchTables.reduce((n, t) => n + t.wheelchairSlots, 0)
+          return (
+            <p className="text-[11px] mb-2">
+              ♿ 車椅子利用 {wheelchairUsers}名 ／ 車椅子枠 {slots}
+              {wheelchairUsers > slots && <b className="ml-1">（{wheelchairUsers - slots}名分不足：椅子への移乗が必要）</b>}
+            </p>
+          )
+        })()}
+        <div className="space-y-3">
+          {tablesByRow(lunchTables).map((row, i) => (
+            <div key={i}>
+              <SubHeading>{i === 0 ? '奥の列' : '手前の列（レジカウンター側）'}</SubHeading>
+              <div className="grid grid-cols-3 gap-2">
+                {row.map(table => {
+                  const members = pick(lunchSeats.filter(a => a.tableId === table.id).map(a => a.personId))
+                  const wheelchair = members.filter(p => p.isWheelchair).length
+                  const warn = members.length > table.capacity
+                    ? '⚠️ 定員超過'
+                    : wheelchair > table.wheelchairSlots ? '⚠️ 車椅子枠超過（移乗が必要）' : ''
+                  return (
+                    <Box key={table.id} title={`テーブル${table.tableNo}`} right={`${members.length}/${table.capacity}名`}>
+                      <p className="text-[10px] text-gray-600 mb-1">
+                        定員{table.capacity}{table.wheelchairSlots > 0 && `・♿枠${table.wheelchairSlots}`}
+                        {warn && <b className="ml-1 text-black">{warn}</b>}
+                      </p>
+                      <NameList persons={members} />
+                    </Box>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </Section>
     </div>
   )

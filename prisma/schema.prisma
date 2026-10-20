@@ -32,6 +32,7 @@ model Trip {
   cars               Car[]
   banquetSeats       BanquetSeatAssignment[]
   lunchSeats         LunchSeatAssignment[]
+  lunchTables        LunchTable[]
   busSeats           BusSeatAssignment[]
   pocketMoneyRecords PocketMoneyRecord[]
   bathingAssignments BathingAssignment[]
@@ -251,17 +252,34 @@ model BanquetSeatAssignment {
   @@unique([tripId, seatId])
 }
 
-// ===== ブルーメの丘昼食席次 =====
+// ===== 昼食会場の席次（2日目 伊賀の里もくもく手づくりファーム） =====
+// テーブルごとに定員と車椅子枠（車椅子のまま座る位置の数。定員に含む）を持つ。初期データは lib/lunch.ts
+model LunchTable {
+  id              Int @id @default(autoincrement())
+  tripId          Int
+  tableNo         Int
+  capacity        Int
+  wheelchairSlots Int @default(0)
+  layoutRow       Int @default(0) // 配置図の行（0: 奥の列、1: 手前の列）
+  layoutOrder     Int @default(0) // 行内の左からの並び順
+
+  trip        Trip                  @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  assignments LunchSeatAssignment[]
+
+  @@unique([tripId, tableNo])
+}
+
+// テーブル単位の割り当て（席番号までは決めない）
 model LunchSeatAssignment {
-  id       Int    @id @default(autoincrement())
+  id       Int     @id @default(autoincrement())
   tripId   Int
   personId Int
-  tableNo  Int?
-  seatNo   Int?
+  tableId  Int
   notes    String?
 
-  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  trip   Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  person Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
+  table  LunchTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
 
   @@unique([tripId, personId])
 }

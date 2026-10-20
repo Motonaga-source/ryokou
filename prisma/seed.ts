@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { withSortOrder } from './schedule-data'
 import { SUPPLY_DATA } from './supply-data'
 import { DEFAULT_PICKUP_VEHICLES } from '../lib/pickup'
+import { DEFAULT_LUNCH_TABLES } from '../lib/lunch'
 
 const prisma = new PrismaClient()
 
@@ -484,6 +485,13 @@ async function main() {
   await prisma.pickupVehicle.deleteMany({})
   await prisma.pickupVehicle.createMany({ data: DEFAULT_PICKUP_VEHICLES })
   console.log(`✅ 送迎車 ${DEFAULT_PICKUP_VEHICLES.length}台作成`)
+
+  // ===== 13. LunchTable（昼食会場のテーブル）=====
+  await prisma.lunchTable.createMany({
+    data: DEFAULT_LUNCH_TABLES.map((t) => ({ tripId: trip.id, ...t })),
+    skipDuplicates: true,
+  })
+  console.log(`✅ 昼食会場のテーブル ${DEFAULT_LUNCH_TABLES.length}卓作成`)
 
   console.log('\n🎉 全シードデータ投入完了！')
   console.log(`  Trip: 1件`)

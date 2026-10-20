@@ -31,6 +31,7 @@ export const MENU_ITEMS: MenuItem[] = [
   item('/teams', 'チーム・配置', '📋'),
   item('/bathing', '入浴管理', '♨️'),
   item('/banquet', '宴会 席順', '🍶'),
+  item('/lunch', '昼食 席順', '🍖'),
   item('/pickup', '集合・送迎', '🚗'),
   item('/schedule', 'スケジュール', '🗓️'),
   item('/supplies', '持ち物', '🎒'),

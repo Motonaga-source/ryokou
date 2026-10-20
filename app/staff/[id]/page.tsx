@@ -16,6 +16,9 @@ const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 const BUS_NEIGHBORS: Record<string, string[]> = { A: ['B'], B: ['A'], C: ['D'], D: ['C'] }
 const BACK_ROW_SIDES = ['A', 'B', 'C', 'D', 'E']
 
+// 部屋番号が数字だけのときだけ「号室」を付ける（"363トリプルベッド" のような名前はそのまま）
+const roomLabel = (roomNumber: string) => (/^\d+$/.test(roomNumber.trim()) ? `${roomNumber}号室` : roomNumber)
+
 interface P {
   id: number
   name: string
@@ -48,7 +51,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
     )
   }
 
-  const [pickup, vehicles, busSeat, carAssignments, roomAssignments, teamMemberships, bathing, banquetSeat, schedules] =
+  const [pickup, vehicles, busSeat, carAssignments, roomAssignments, teamMemberships, bathing, banquetSeat, schedules, lunchSeat] =
     await Promise.all([
       prisma.pickupAssignment.findUnique({ where: { tripId_personId: { tripId: TRIP_ID, personId } } }),
       prisma.pickupVehicle.findMany(),
@@ -68,6 +71,10 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
       prisma.bathingAssignment.findUnique({ where: { tripId_personId: { tripId: TRIP_ID, personId } } }),
       prisma.banquetSeatAssignment.findUnique({ where: { tripId_personId: { tripId: TRIP_ID, personId } } }),
       prisma.schedule.findMany({ where: { tripId: TRIP_ID }, orderBy: [{ dayNo: 'asc' }, { sortOrder: 'asc' }] }),
+      prisma.lunchSeatAssignment.findUnique({
+        where: { tripId_personId: { tripId: TRIP_ID, personId } },
+        include: { table: { include: { assignments: true } } },
+      }),
     ])
 
   const pick = (ids: number[]) => sortPersons(ids.map(i => byId.get(i)).filter((p): p is P => !!p))
@@ -186,7 +193,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         {roomAssignments.length === 0 && <Undecided />}
         {roomAssignments.map(a => (
           <div key={a.id}>
-            <Main>{a.room.roomNumber}号室</Main>
+            <Main>{roomLabel(a.room.roomNumber)}</Main>
             <Sub>{a.room.floor}階・{a.room.roomType}</Sub>
             <Members label="同室のメンバー" persons={pick(a.room.assignments.map(x => x.personId))} meId={me.id} />
           </div>
@@ -231,6 +238,21 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
           <>
             <Main>{banquetInfo.label}</Main>
             <Members label="同じテーブルのメンバー" persons={banquetInfo.members} meId={me.id} />
+          </>
+        ) : <Undecided />}
+      </Card>
+
+      <Card icon="🍖" title="昼食（2日目 もくもく手づくりファーム）">
+        {lunchSeat ? (
+          <>
+            <Main>
+              テーブル{lunchSeat.table.tableNo}
+              {me.isWheelchair && lunchSeat.table.wheelchairSlots > 0 && (
+                <span className="ml-2 align-middle text-xs font-bold bg-pink-100 text-pink-800 border border-pink-300 rounded-full px-2 py-0.5">♿ 車椅子枠あり</span>
+              )}
+            </Main>
+            <Sub>定員{lunchSeat.table.capacity}名{lunchSeat.table.wheelchairSlots > 0 && `（車椅子枠${lunchSeat.table.wheelchairSlots}）`}</Sub>
+            <Members label="同じテーブルのメンバー" persons={pick(lunchSeat.table.assignments.map(a => a.personId))} meId={me.id} />
           </>
         ) : <Undecided />}
       </Card>

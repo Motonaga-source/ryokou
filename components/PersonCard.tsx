@@ -13,17 +13,19 @@ export interface CardPerson {
 // 人員カード（teams / rooms / bathing と同じ配色・アイコン）。宴会席次・集合送迎で使用
 // compact: 席の中に収める小さい表示
 // memo: 名前の下に小さく表示する補足（集合・送迎画面の送迎メモなど）
+// wrapName: 狭い枠でも名前を省略せず折り返して表示する（昼食席順の席など）
 type Props = HTMLAttributes<HTMLDivElement> & {
   person: CardPerson
   compact?: boolean
   memo?: string | null
+  wrapName?: boolean
   draggable?: boolean
   isDragging?: boolean
   isOverlay?: boolean
 }
 
 const PersonCard = forwardRef<HTMLDivElement, Props>(function PersonCard(
-  { person, compact = false, memo, draggable = false, isDragging = false, isOverlay = false, className = '', ...rest },
+  { person, compact = false, memo, wrapName = false, draggable = false, isDragging = false, isOverlay = false, className = '', ...rest },
   ref,
 ) {
   // 色分けロジック: 車椅子 > スタッフ > 一般
@@ -62,7 +64,7 @@ const PersonCard = forwardRef<HTMLDivElement, Props>(function PersonCard(
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-1">
           {person.isWheelchair && <span className={`shrink-0 ${compact ? 'text-xs' : 'text-sm'}`}>♿️</span>}
-          <span className={`flex-1 min-w-0 truncate block font-bold text-gray-800 ${compact ? 'text-xs' : 'text-sm'}`}>
+          <span className={`flex-1 min-w-0 block font-bold text-gray-800 ${wrapName ? 'break-words leading-tight [word-break:keep-all]' : 'truncate'} ${compact ? 'text-xs' : 'text-sm'}`}>
             {person.name}
           </span>
           {person.isFishNG && <FishNGBadge />}
