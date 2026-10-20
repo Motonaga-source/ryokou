@@ -343,6 +343,7 @@ function RollCallButton({ person, note, onToggle }: { person: RollCallPerson; no
 }
 
 // ===== バス座席レイアウト（横4席＋通路。最後列は A〜E の5席） =====
+// バス座席表・印刷用のバス座席表と同じ向き（上が最後列、下が前方の1列目）
 
 const BUS_GRID = 'grid grid-cols-[1.25rem_1fr_1fr_0.75rem_1fr_1fr] gap-1'
 const BACK_ROW_SIDES = ['A', 'B', 'C', 'D', 'E']
@@ -355,7 +356,7 @@ function BusSeatGrid({ members, onlyUnchecked, onToggle }: {
   const bySeat = new Map(members.filter(m => m.seat).map(m => [`${m.seat!.row}${m.seat!.side}`, m.person]))
   const noSeat = members.filter(m => !m.seat)
   const lastRow = Math.max(12, ...members.map(m => m.seat?.row ?? 0))
-  const rows = Array.from({ length: lastRow }, (_, i) => i + 1) // 前（1列目）から順に
+  const rows = Array.from({ length: lastRow }, (_, i) => lastRow - i) // 上が最後列、下が1列目
   const seat = (row: number, side: string) => (
     <BusSeatButton
       key={side}
@@ -368,7 +369,7 @@ function BusSeatGrid({ members, onlyUnchecked, onToggle }: {
 
   return (
     <div className="mx-auto max-w-xl rounded-2xl border-2 border-gray-300 bg-gray-50 p-1.5 sm:p-3">
-      <div className="mb-1.5 rounded bg-gray-200 py-0.5 text-center text-[10px] font-bold text-gray-600">▲ 前方（運転席・乗降口）</div>
+      <div className="mb-1.5 rounded bg-gray-200 py-0.5 text-center text-[10px] font-bold text-gray-600">後方</div>
       <div className={`${BUS_GRID} mb-1 text-center text-[10px] font-bold text-gray-500`}>
         <span />
         <span>A</span>
@@ -396,7 +397,7 @@ function BusSeatGrid({ members, onlyUnchecked, onToggle }: {
           </div>
         ))}
       </div>
-      <div className="mt-1.5 rounded bg-gray-200 py-0.5 text-center text-[10px] font-bold text-gray-600">後方</div>
+      <div className="mt-1.5 rounded bg-gray-200 py-0.5 text-center text-[10px] font-bold text-gray-600">▼ 前方（運転席・乗降口）</div>
       {noSeat.length > 0 && (
         <div className="mt-2">
           <p className="text-[11px] font-semibold text-gray-500 mb-1">座席番号なし（{noSeat.length}名）</p>
