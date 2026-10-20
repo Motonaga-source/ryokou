@@ -333,11 +333,15 @@ export default async function PrintPage() {
               <SubHeading>{i === 0 ? '奥の列' : '手前の列（レジカウンター側）'}</SubHeading>
               <div className="grid grid-cols-3 gap-2">
                 {row.map(table => {
-                  const members = pick(lunchSeats.filter(a => a.tableId === table.id).map(a => a.personId))
-                  const wheelchair = members.filter(p => p.isWheelchair).length
-                  const warn = members.length > table.capacity
-                    ? '⚠️ 定員超過'
-                    : wheelchair > table.wheelchairSlots ? '⚠️ 車椅子枠超過（移乗が必要）' : ''
+                  const tableSeats = lunchSeats.filter(a => a.tableId === table.id && byId.has(a.personId))
+                  const members = pick(tableSeats.map(a => a.personId))
+                  // 車椅子の方が普通の席（移乗が必要）／車椅子以外の方が車椅子枠（椅子が必要）
+                  const transfer = tableSeats.filter(a => a.seatIndex >= table.wheelchairSlots && byId.get(a.personId)?.isWheelchair).length
+                  const noChair = tableSeats.filter(a => a.seatIndex < table.wheelchairSlots && !byId.get(a.personId)?.isWheelchair).length
+                  const warn = [
+                    transfer > 0 && `⚠️ 移乗が必要 ${transfer}名`,
+                    noChair > 0 && `⚠️ 椅子の用意 ${noChair}名`,
+                  ].filter(Boolean).join(' ')
                   return (
                     <Box key={table.id} title={`テーブル${table.tableNo}`} right={`${members.length}/${table.capacity}名`}>
                       <p className="text-[10px] text-gray-600 mb-1">

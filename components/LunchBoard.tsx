@@ -16,13 +16,22 @@ import {
 import PersonCard, { type CardPerson } from '@/components/PersonCard'
 import FishNGBadge from '@/components/FishNGBadge'
 import { sortPersons } from '@/lib/bathing'
-import { seatPeople, tablesByRow, wheelchairSideOf, type LunchAssignment, type LunchResponse, type LunchTable } from '@/lib/lunch'
+import {
+  isWheelchairSeat,
+  moveToLunchSeat,
+  parseSeatDropId,
+  seatDropId,
+  tablesByRow,
+  wheelchairSideOf,
+  type LunchAssignment,
+  type LunchResponse,
+  type LunchSeatRef,
+  type LunchTable,
+} from '@/lib/lunch'
 
 interface LunchPerson extends CardPerson {
   participations?: { status: string }[]
 }
-
-const tableDropId = (tableId: number) => `lunch-table-${tableId}`
 
 async function loadBoard() {
   const [resL, resP] = await Promise.all([
@@ -34,8 +43,8 @@ async function loadBoard() {
   return { ...lunch, persons: persons.filter(p => p.participations?.[0]?.status === '参加') }
 }
 
-// 昼食会場の席次（テーブル単位の割り当て）。editable のときはドラッグ＆ドロップで割り当てられる
-// 定員・車椅子枠の超過は警告表示のみで、割り当ては許容する
+// 昼食会場の席次（座席単位の割り当て）。editable のときは席へドラッグ＆ドロップで配置でき、座っている人の席に落とすと入れ替わる
+// 車椅子枠と普通の席の使い方が合わない場合は警告表示のみで、配置は許容する
 export default function LunchBoard({ editable = false }: { editable?: boolean }) {
   const [persons, setPersons] = useState<LunchPerson[]>([])
   const [tables, setTables] = useState<LunchTable[]>([])
@@ -60,29 +69,33 @@ export default function LunchBoard({ editable = false }: { editable?: boolean })
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   )
 
+  const personById = new Map(persons.map(p => [p.id, p]))
   const tableIds = new Set(tables.map(t => t.id))
-  const tableByPerson = new Map(assignments.filter(a => tableIds.has(a.tableId)).map(a => [a.personId, a.tableId]))
-  const membersOf = (tableId: number) => sortPersons(persons.filter(p => tableByPerson.get(p.id) === tableId))
-  const unassigned = sortPersons(persons.filter(p => !tableByPerson.has(p.id)))
+  const valid = assignments.filter(a => tableIds.has(a.tableId) && personById.has(a.personId))
+  const personAt = (seat: LunchSeatRef) => {
+    const a = valid.find(x => x.tableId === seat.tableId && x.seatIndex === seat.seatIndex)
+    return a ? personById.get(a.personId) ?? null : null
+  }
+  const seatedIds = new Set(valid.map(a => a.personId))
+  const unassigned = sortPersons(persons.filter(p => !seatedIds.has(p.id)))
 
   const wheelchairUsers = persons.filter(p => p.isWheelchair).length
   const wheelchairSlots = tables.reduce((n, t) => n + t.wheelchairSlots, 0)
   const totalSeats = tables.reduce((n, t) => n + t.capacity, 0)
   const fishNGCount = persons.filter(p => p.isFishNG).length
 
-  const handleAssign = async (personId: number, tableId: number | null) => {
-    if ((tableByPerson.get(personId) ?? null) === tableId) return
+  const handleMove = async (personId: number, target: LunchSeatRef | null) => {
+    const from = assignments.find(a => a.personId === personId)
+    if (!from && !target) return
+    if (from && target && from.tableId === target.tableId && from.seatIndex === target.seatIndex) return
 
     // Optimistic UI
-    setAssignments(prev => [
-      ...prev.filter(a => a.personId !== personId),
-      ...(tableId !== null ? [{ personId, tableId }] : []),
-    ])
+    setAssignments(prev => moveToLunchSeat(prev, personId, target))
 
     const res = await fetch('/api/lunch/assign', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tripId: 1, personId, tableId }),
+      body: JSON.stringify({ tripId: 1, personId, tableId: target?.tableId ?? null, seatIndex: target?.seatIndex }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
@@ -103,11 +116,15 @@ export default function LunchBoard({ editable = false }: { editable?: boolean })
     if (!over) return
     const personId = Number(String(active.id).replace('person-', ''))
     const overId = String(over.id)
-    if (overId === 'unassigned') handleAssign(personId, null)
-    else if (overId.startsWith('lunch-table-')) handleAssign(personId, Number(overId.replace('lunch-table-', '')))
+    if (overId === 'unassigned') {
+      handleMove(personId, null)
+      return
+    }
+    const seat = parseSeatDropId(overId)
+    if (seat) handleMove(personId, seat)
   }
 
-  const activePerson = activeId !== null ? persons.find(p => p.id === activeId) : undefined
+  const activePerson = activeId !== null ? personById.get(activeId) : undefined
 
   if (loading) return <div className="text-center py-10 text-gray-400">読み込み中...</div>
 
@@ -155,7 +172,7 @@ export default function LunchBoard({ editable = false }: { editable?: boolean })
                 {tablesByRow(tables).map((row, i, rows) => (
                   <div key={i} className="flex items-start gap-1.5">
                     {row.map(table => (
-                      <TableBox key={table.id} table={table} members={membersOf(table.id)} editable={editable} />
+                      <TableBox key={table.id} table={table} personAt={personAt} editable={editable} />
                     ))}
                     {/* お店の配置図の目印（手前の列の右端） */}
                     {i === rows.length - 1 && (
@@ -181,36 +198,37 @@ export default function LunchBoard({ editable = false }: { editable?: boolean })
 // PC（幅1280px以上）で手前の列（6卓）が横に収まる幅。8名卓は車椅子枠3つを横一列に並べられる幅にする
 const TABLE_WIDTH: Record<number, string> = { 4: 'w-40', 6: 'w-40', 8: 'w-60' }
 
-function TableBox({ table, members, editable }: { table: LunchTable; members: LunchPerson[]; editable: boolean }) {
-  const { setNodeRef, isOver } = useDroppable({ id: tableDropId(table.id), disabled: !editable })
-  const seats = seatPeople(table, members)
+function TableBox({ table, personAt, editable }: {
+  table: LunchTable
+  personAt: (seat: LunchSeatRef) => LunchPerson | null
+  editable: boolean
+}) {
+  const seats = Array.from({ length: table.capacity }, (_, seatIndex) => ({
+    seatIndex,
+    wheelchair: isWheelchairSeat(table, seatIndex),
+    person: personAt({ tableId: table.id, seatIndex }),
+  }))
+  const members = seats.filter(s => s.person).length
+  // 車椅子利用者が普通の席（椅子への移乗が必要）／車椅子以外の人が車椅子枠（椅子がない）に座っている数
+  const transferCount = seats.filter(s => !s.wheelchair && s.person?.isWheelchair).length
+  const noChairCount = seats.filter(s => s.wheelchair && s.person && !s.person.isWheelchair).length
   const side = wheelchairSideOf(table.tableNo)
-  const wheelchairCells = seats.wheelchairSeats.map((p, i) => (
-    <Seat key={`w${i}`} person={p} editable={editable} empty="♿" wheelchair />
-  ))
-  const normalCells = seats.normalSeats.map((p, i) => (
-    <Seat key={`n${i}`} person={p} editable={editable} empty="空席" />
-  ))
 
-  const tone = seats.isOverCapacity
-    ? 'border-red-500 bg-red-50'
-    : seats.isWheelchairOver
-    ? 'border-orange-400 bg-orange-50'
-    : 'border-amber-600/60 bg-amber-50'
+  const cells = (wheelchair: boolean) =>
+    seats.filter(s => s.wheelchair === wheelchair).map(s => (
+      <Seat key={s.seatIndex} table={table} seatIndex={s.seatIndex} person={s.person} wheelchair={wheelchair} editable={editable} />
+    ))
+  const wheelchairCells = cells(true)
+  const normalCells = cells(false)
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`print-avoid-break shrink-0 ${TABLE_WIDTH[table.capacity] ?? 'w-56'} rounded-xl border-2 p-2 transition-colors ${tone} ${
-        isOver ? 'ring-4 ring-indigo-300' : ''
-      }`}
-    >
+    <div className={`print-avoid-break shrink-0 ${TABLE_WIDTH[table.capacity] ?? 'w-56'} rounded-xl border-2 p-2 ${
+      transferCount || noChairCount ? 'border-orange-400 bg-orange-50' : 'border-amber-600/60 bg-amber-50'
+    }`}>
       <div className="mb-1.5">
         <div className="flex items-baseline justify-between gap-1">
           <span className="font-bold text-gray-800 whitespace-nowrap">テーブル{table.tableNo}</span>
-          <span className={`text-xs font-bold whitespace-nowrap ${seats.isOverCapacity ? 'text-red-700' : 'text-gray-600'}`}>
-            {members.length}/{table.capacity}名
-          </span>
+          <span className="text-xs font-bold whitespace-nowrap text-gray-600">{members}/{table.capacity}名</span>
         </div>
         <div className="text-[10px] font-bold text-pink-700 h-3.5">
           {table.wheelchairSlots > 0 ? `♿ 車椅子枠 ${table.wheelchairSlots}` : ''}
@@ -236,39 +254,47 @@ function TableBox({ table, members, editable }: { table: LunchTable; members: Lu
         </div>
       )}
 
-      {seats.isWheelchairOver && !seats.isOverCapacity && (
-        <p className="mt-1.5 text-[11px] font-bold text-orange-700">⚠️ 車椅子枠を{seats.transferCount}名超過（椅子への移乗が必要）</p>
+      {transferCount > 0 && (
+        <p className="mt-1.5 text-[11px] font-bold text-orange-700">⚠️ 車椅子の方が普通の席に{transferCount}名（椅子への移乗が必要）</p>
       )}
-      {seats.isOverCapacity && (
-        <div className="mt-1.5">
-          <p className="text-[11px] font-bold text-red-700">⚠️ 定員オーバー（+{members.length - table.capacity}名）</p>
-          <div className="mt-1 space-y-1">
-            {seats.overflow.map(p => <DraggablePerson key={p.id} person={p} editable={editable} compact />)}
-          </div>
-        </div>
+      {noChairCount > 0 && (
+        <p className="mt-1 text-[11px] font-bold text-orange-700">⚠️ 車椅子枠に車椅子以外の方が{noChairCount}名（椅子の用意が必要）</p>
       )}
     </div>
   )
 }
 
-function Seat({ person, editable, empty, wheelchair = false }: {
+function Seat({ table, seatIndex, person, wheelchair, editable }: {
+  table: LunchTable
+  seatIndex: number
   person: LunchPerson | null
+  wheelchair: boolean
   editable: boolean
-  empty: string
-  wheelchair?: boolean
 }) {
-  if (person) {
-    return (
-      <div className="h-11 min-w-0">
-        <DraggablePerson person={person} editable={editable} compact wrapName hideWheelchairIcon={wheelchair} />
-      </div>
-    )
-  }
+  const { setNodeRef, isOver } = useDroppable({ id: seatDropId({ tableId: table.id, seatIndex }), disabled: !editable })
+  const mismatch = person && person.isWheelchair !== wheelchair
+
   return (
-    <div className={`h-11 min-w-0 rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] ${
-      wheelchair ? 'border-pink-300 bg-pink-50/60 text-pink-400' : 'border-amber-300 bg-white/60 text-amber-400'
-    }`}>
-      {empty}
+    <div
+      ref={setNodeRef}
+      className={`relative h-11 min-w-0 rounded-lg transition-colors ${isOver ? 'ring-2 ring-indigo-400' : ''} ${
+        person
+          ? ''
+          : `border-2 border-dashed flex items-center justify-center text-[10px] ${
+              wheelchair ? 'border-pink-300 bg-pink-50/60 text-pink-400' : 'border-amber-300 bg-white/60 text-amber-400'
+            } ${isOver ? 'bg-indigo-50' : ''}`
+      }`}
+    >
+      {person ? (
+        <>
+          <DraggablePerson person={person} editable={editable} hideWheelchairIcon={wheelchair && person.isWheelchair} />
+          {mismatch && (
+            <span className="absolute -top-1.5 -right-1.5 z-10 text-xs leading-none" title={wheelchair ? '車椅子枠に車椅子以外の方' : '車椅子の方が普通の席（移乗が必要）'}>⚠️</span>
+          )}
+        </>
+      ) : (
+        wheelchair ? '♿' : '空席'
+      )}
     </div>
   )
 }
@@ -289,14 +315,14 @@ function UnassignedPanel({ persons, editable }: { persons: LunchPerson[]; editab
     >
       <h3 className="font-bold text-gray-800">未配置 - {persons.length}名</h3>
       {editable && (
-        <p className="text-xs text-gray-500 mb-2">長押しでテーブルへドラッグ。ここへ戻すと配置を解除します</p>
+        <p className="text-xs text-gray-500 mb-2">長押しで席へドラッグ。座っている人の席に落とすと入れ替わります。ここへ戻すと配置を解除します</p>
       )}
       <div className="max-h-[320px] 2xl:max-h-[calc(100vh-220px)] overflow-y-auto pr-1 space-y-3 mt-2">
         {groups.map(g => g.list.length > 0 && (
           <div key={g.title}>
             <div className="text-xs font-semibold text-gray-500 mb-1.5">{g.title}（{g.list.length}名）</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-1 gap-2">
-              {g.list.map(p => <DraggablePerson key={p.id} person={p} editable={editable} />)}
+              {g.list.map(p => <DraggablePerson key={p.id} person={p} editable={editable} list />)}
             </div>
           </div>
         ))}
@@ -306,11 +332,11 @@ function UnassignedPanel({ persons, editable }: { persons: LunchPerson[]; editab
   )
 }
 
-function DraggablePerson({ person, editable, compact = false, wrapName = false, hideWheelchairIcon = false }: {
+// list: 未配置一覧用の通常サイズ。それ以外は席に収まる小さい表示（名前は省略せず折り返す）
+function DraggablePerson({ person, editable, list = false, hideWheelchairIcon = false }: {
   person: LunchPerson
   editable: boolean
-  compact?: boolean
-  wrapName?: boolean
+  list?: boolean
   hideWheelchairIcon?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -325,8 +351,8 @@ function DraggablePerson({ person, editable, compact = false, wrapName = false, 
       style={style}
       {...(editable ? { ...listeners, ...attributes } : {})}
       person={person}
-      compact={compact}
-      wrapName={wrapName}
+      compact={!list}
+      wrapName={!list}
       hideWheelchairIcon={hideWheelchairIcon}
       draggable={editable}
       isDragging={isDragging}

@@ -269,19 +269,21 @@ model LunchTable {
   @@unique([tripId, tableNo])
 }
 
-// テーブル単位の割り当て（席番号までは決めない）
+// 座席単位の割り当て。seatIndex はテーブル内の席番号（0 から。先頭の wheelchairSlots 個が車椅子枠）
 model LunchSeatAssignment {
-  id       Int     @id @default(autoincrement())
-  tripId   Int
-  personId Int
-  tableId  Int
-  notes    String?
+  id        Int     @id @default(autoincrement())
+  tripId    Int
+  personId  Int
+  tableId   Int
+  seatIndex Int
+  notes     String?
 
   trip   Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
   person Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
   table  LunchTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
 
   @@unique([tripId, personId])
+  @@unique([tableId, seatIndex]) // 同じ席に2人座らない
 }
 
 // ===== バス座席 =====

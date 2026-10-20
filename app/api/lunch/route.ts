@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       select: { id: true, tableNo: true, capacity: true, wheelchairSlots: true, layoutRow: true, layoutOrder: true },
       orderBy: [{ layoutRow: 'asc' }, { layoutOrder: 'asc' }],
     }),
-    prisma.lunchSeatAssignment.findMany({ where: { tripId }, select: { personId: true, tableId: true } }),
+    prisma.lunchSeatAssignment.findMany({ where: { tripId }, select: { personId: true, tableId: true, seatIndex: true } }),
   ])
 
   const body: LunchResponse = { tables, assignments }

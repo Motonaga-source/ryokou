@@ -247,11 +247,14 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
           <>
             <Main>
               テーブル{lunchSeat.table.tableNo}
-              {me.isWheelchair && lunchSeat.table.wheelchairSlots > 0 && (
-                <span className="ml-2 align-middle text-xs font-bold bg-pink-100 text-pink-800 border border-pink-300 rounded-full px-2 py-0.5">♿ 車椅子枠あり</span>
+              {me.isWheelchair && lunchSeat.seatIndex >= lunchSeat.table.wheelchairSlots && (
+                <span className="ml-2 align-middle text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300 rounded-full px-2 py-0.5">⚠️ 椅子への移乗が必要</span>
               )}
             </Main>
-            <Sub>定員{lunchSeat.table.capacity}名{lunchSeat.table.wheelchairSlots > 0 && `（車椅子枠${lunchSeat.table.wheelchairSlots}）`}</Sub>
+            <Sub>
+              {lunchSeat.seatIndex < lunchSeat.table.wheelchairSlots ? '♿ 車椅子枠の席' : '普通の席'}
+              ・定員{lunchSeat.table.capacity}名{lunchSeat.table.wheelchairSlots > 0 && `（車椅子枠${lunchSeat.table.wheelchairSlots}）`}
+            </Sub>
             <Members label="同じテーブルのメンバー" persons={pick(lunchSeat.table.assignments.map(a => a.personId))} meId={me.id} />
           </>
         ) : <Undecided />}

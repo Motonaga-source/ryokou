@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { isValidSeatIndex, moveToLunchSeat } from '@/lib/lunch'
 
 // PUT /api/lunch/assign
-// body: { tripId?: number, personId: number, tableId: number | null }
-// tableId が null の場合は割り当てを解除。定員・車椅子枠の超過は画面で警告するのみで、割り当ては許容する
+// body: { tripId?: number, personId: number, tableId: number | null, seatIndex?: number }
+// 指定した席へ配置する。席に別の人がいれば入れ替え（移動元の席がなければその人は未配置へ）。tableId が null なら配置解除
+// 車椅子枠に車椅子以外の人が座る・車椅子利用者が普通の席に座る場合も、画面で警告するのみで配置は許容する
 export async function PUT(request: Request) {
   const session = await getSession()
   if (!session?.isAdmin) {
@@ -20,22 +22,35 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'personId が不正です' }, { status: 400 })
   }
 
-  if (tableId === null) {
-    await prisma.lunchSeatAssignment.deleteMany({ where: { tripId, personId } })
-    return NextResponse.json({ success: true })
+  let target: { tableId: number; seatIndex: number } | null = null
+  if (tableId !== null) {
+    const table = Number.isInteger(tableId) ? await prisma.lunchTable.findFirst({ where: { id: tableId, tripId } }) : null
+    if (!table) {
+      return NextResponse.json({ error: 'tableId が不正です' }, { status: 400 })
+    }
+    if (!isValidSeatIndex(table, body.seatIndex)) {
+      return NextResponse.json({ error: 'seatIndex が不正です' }, { status: 400 })
+    }
+    target = { tableId, seatIndex: body.seatIndex }
   }
 
-  const table = Number.isInteger(tableId)
-    ? await prisma.lunchTable.findFirst({ where: { id: tableId, tripId } })
-    : null
-  if (!table) {
-    return NextResponse.json({ error: 'tableId が不正です' }, { status: 400 })
-  }
-
-  await prisma.lunchSeatAssignment.upsert({
-    where: { tripId_personId: { tripId, personId } },
-    create: { tripId, personId, tableId },
-    update: { tableId },
+  const current = await prisma.lunchSeatAssignment.findMany({
+    where: { tripId },
+    select: { personId: true, tableId: true, seatIndex: true },
   })
+  const next = moveToLunchSeat(current, personId, target)
+
+  // 影響のある人（移動する本人と、入れ替え相手）の割り当てだけを入れ替える
+  const affected = [
+    personId,
+    ...current.filter(a => target && a.tableId === target.tableId && a.seatIndex === target.seatIndex).map(a => a.personId),
+  ]
+  await prisma.$transaction([
+    prisma.lunchSeatAssignment.deleteMany({ where: { tripId, personId: { in: affected } } }),
+    prisma.lunchSeatAssignment.createMany({
+      data: next.filter(a => affected.includes(a.personId)).map(a => ({ tripId, ...a })),
+    }),
+  ])
+
   return NextResponse.json({ success: true })
 }
