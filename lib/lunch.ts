@@ -14,6 +14,12 @@ export const DEFAULT_LUNCH_TABLES = [
   { tableNo: 21, capacity: 8, wheelchairSlots: 3, layoutRow: 1, layoutOrder: 5 },
 ]
 
+// テーブル内で車椅子枠を描く位置（お店の配置図の○印の位置）。指定がないテーブルは上側に横並び
+// テーブル7は右側（テーブル6との間の通路側）、テーブル6は左側（テーブル7との間の通路側）に縦並び
+export type WheelchairSide = 'top' | 'left' | 'right'
+export const WHEELCHAIR_SIDE: Record<number, WheelchairSide> = { 7: 'right', 6: 'left' }
+export const wheelchairSideOf = (tableNo: number): WheelchairSide => WHEELCHAIR_SIDE[tableNo] ?? 'top'
+
 export interface LunchTable {
   id: number
   tableNo: number

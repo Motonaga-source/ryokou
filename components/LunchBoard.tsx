@@ -16,7 +16,7 @@ import {
 import PersonCard, { type CardPerson } from '@/components/PersonCard'
 import FishNGBadge from '@/components/FishNGBadge'
 import { sortPersons } from '@/lib/bathing'
-import { seatPeople, tablesByRow, type LunchAssignment, type LunchResponse, type LunchTable } from '@/lib/lunch'
+import { seatPeople, tablesByRow, wheelchairSideOf, type LunchAssignment, type LunchResponse, type LunchTable } from '@/lib/lunch'
 
 interface LunchPerson extends CardPerson {
   participations?: { status: string }[]
@@ -151,9 +151,9 @@ export default function LunchBoard({ editable = false }: { editable?: boolean })
           <div className="flex-1 min-w-0 w-full">
             <p className="2xl:hidden text-xs text-gray-500 mb-1.5 print:hidden">← 画面に収まらないときは、配置図を左右にスクロールできます →</p>
             <div className="w-full overflow-x-auto overscroll-x-contain pb-2 print:overflow-visible">
-              <div className="min-w-[1060px] rounded-2xl border-2 border-stone-300 bg-stone-50 p-3 space-y-6">
+              <div className="min-w-[1110px] rounded-2xl border-2 border-stone-300 bg-stone-50 p-3 space-y-6">
                 {tablesByRow(tables).map((row, i, rows) => (
-                  <div key={i} className="flex items-start gap-2">
+                  <div key={i} className="flex items-start gap-1.5">
                     {row.map(table => (
                       <TableBox key={table.id} table={table} members={membersOf(table.id)} editable={editable} />
                     ))}
@@ -178,12 +178,19 @@ export default function LunchBoard({ editable = false }: { editable?: boolean })
   )
 }
 
-// PC（幅1280px以上）で手前の列（6卓）が横に収まる幅
-const TABLE_WIDTH: Record<number, string> = { 4: 'w-40', 6: 'w-40', 8: 'w-52' }
+// PC（幅1280px以上）で手前の列（6卓）が横に収まる幅。8名卓は車椅子枠3つを横一列に並べられる幅にする
+const TABLE_WIDTH: Record<number, string> = { 4: 'w-40', 6: 'w-40', 8: 'w-60' }
 
 function TableBox({ table, members, editable }: { table: LunchTable; members: LunchPerson[]; editable: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: tableDropId(table.id), disabled: !editable })
   const seats = seatPeople(table, members)
+  const side = wheelchairSideOf(table.tableNo)
+  const wheelchairCells = seats.wheelchairSeats.map((p, i) => (
+    <Seat key={`w${i}`} person={p} editable={editable} empty="♿" wheelchair />
+  ))
+  const normalCells = seats.normalSeats.map((p, i) => (
+    <Seat key={`n${i}`} person={p} editable={editable} empty="空席" />
+  ))
 
   const tone = seats.isOverCapacity
     ? 'border-red-500 bg-red-50'
@@ -210,21 +217,24 @@ function TableBox({ table, members, editable }: { table: LunchTable; members: Lu
         </div>
       </div>
 
-      {/* 車椅子枠（お店の配置図の○印） */}
-      {table.wheelchairSlots > 0 && (
-        <div className="grid gap-1 mb-1" style={{ gridTemplateColumns: `repeat(${Math.min(table.wheelchairSlots, 2)}, minmax(0, 1fr))` }}>
-          {seats.wheelchairSeats.map((p, i) => (
-            <Seat key={`w${i}`} person={p} editable={editable} empty="♿" wheelchair />
-          ))}
+      {side === 'top' ? (
+        <>
+          {/* 車椅子枠（お店の配置図の○印）を上側に横一列 */}
+          {table.wheelchairSlots > 0 && (
+            <div className="grid gap-1 mb-1" style={{ gridTemplateColumns: `repeat(${Math.min(table.wheelchairSlots, 3)}, minmax(0, 1fr))` }}>
+              {wheelchairCells}
+            </div>
+          )}
+          {/* 普通の席 */}
+          <div className="grid grid-cols-2 gap-1">{normalCells}</div>
+        </>
+      ) : (
+        // 車椅子枠を左右どちらかの縦一列に（テーブル7は右、テーブル6は左）
+        <div className="grid grid-cols-2 gap-1">
+          <div className="flex flex-col gap-1">{side === 'left' ? wheelchairCells : normalCells}</div>
+          <div className="flex flex-col gap-1">{side === 'left' ? normalCells : wheelchairCells}</div>
         </div>
       )}
-
-      {/* 普通の席 */}
-      <div className="grid grid-cols-2 gap-1">
-        {seats.normalSeats.map((p, i) => (
-          <Seat key={`n${i}`} person={p} editable={editable} empty="空席" />
-        ))}
-      </div>
 
       {seats.isWheelchairOver && !seats.isOverCapacity && (
         <p className="mt-1.5 text-[11px] font-bold text-orange-700">⚠️ 車椅子枠を{seats.transferCount}名超過（椅子への移乗が必要）</p>
@@ -249,13 +259,13 @@ function Seat({ person, editable, empty, wheelchair = false }: {
 }) {
   if (person) {
     return (
-      <div className="h-10 min-w-0">
-        <DraggablePerson person={person} editable={editable} compact wrapName />
+      <div className="h-11 min-w-0">
+        <DraggablePerson person={person} editable={editable} compact wrapName hideWheelchairIcon={wheelchair} />
       </div>
     )
   }
   return (
-    <div className={`h-10 min-w-0 rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] ${
+    <div className={`h-11 min-w-0 rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] ${
       wheelchair ? 'border-pink-300 bg-pink-50/60 text-pink-400' : 'border-amber-300 bg-white/60 text-amber-400'
     }`}>
       {empty}
@@ -296,11 +306,12 @@ function UnassignedPanel({ persons, editable }: { persons: LunchPerson[]; editab
   )
 }
 
-function DraggablePerson({ person, editable, compact = false, wrapName = false }: {
+function DraggablePerson({ person, editable, compact = false, wrapName = false, hideWheelchairIcon = false }: {
   person: LunchPerson
   editable: boolean
   compact?: boolean
   wrapName?: boolean
+  hideWheelchairIcon?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `person-${person.id}`,
@@ -316,6 +327,7 @@ function DraggablePerson({ person, editable, compact = false, wrapName = false }
       person={person}
       compact={compact}
       wrapName={wrapName}
+      hideWheelchairIcon={hideWheelchairIcon}
       draggable={editable}
       isDragging={isDragging}
     />
