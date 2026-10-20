@@ -5,9 +5,9 @@ import { ALLOWANCE_TYPES } from '@/lib/allowance'
 
 interface PocketMoneyRecord {
   id: number
-  allocated: number
+  allocated: number | null // 利用者ごとの支給額（未設定は null）
   used: number
-  remaining: number
+  remaining: number | null
   person: {
     id: number
     name: string
@@ -125,7 +125,8 @@ export default function PocketMoneyPage() {
 
 function MoneyCard({ record, self }: { record: PocketMoneyRecord; self: boolean }) {
   const { person } = record
-  const rate = record.allocated > 0 ? Math.round((record.used / record.allocated) * 100) : 0
+  // 使用率・残額は利用者ごとの支給額をもとに計算（API で 残額 = 支給額 − 使用額）
+  const rate = record.allocated ? Math.round((record.used / record.allocated) * 100) : 0
 
   return (
     <div className={`print-avoid-break rounded-xl border-2 p-3 ${
@@ -149,6 +150,8 @@ function MoneyCard({ record, self }: { record: PocketMoneyRecord; self: boolean 
 
       {self ? (
         <p className="mt-2 text-xs text-gray-500">法人準備なし（本人が用意したお金のため精算対象外）</p>
+      ) : record.allocated === null || record.remaining === null ? (
+        <p className="mt-2 text-xs font-semibold text-orange-700">支給額は未設定です</p>
       ) : (
         <>
           {/* 金額は横一列・右寄せにしてカードの高さを抑える */}

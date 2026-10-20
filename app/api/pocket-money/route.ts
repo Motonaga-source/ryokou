@@ -2,39 +2,42 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { isCorporateAllowance } from '@/lib/allowance'
 
+// GET /api/pocket-money?tripId=1  参加する利用者の小遣い（支給額・使用額・残額）と管理区分
+// 支給額は利用者ごとに個別に設定する。未設定の人は allocated が null（一律の初期値は使わない）
+// 合計は、法人がお金を預かる人（自己管理以外）で支給額が設定済みの人だけを対象にする
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const tripId = parseInt(searchParams.get('tripId') || '1')
 
-  // 参加ステータスが「参加」の利用者を全て取得
   const persons = await prisma.person.findMany({
-    where: { 
+    where: {
       role: 'USER',
-      participations: { some: { tripId, status: '参加' } } 
+      participations: { some: { tripId, status: '参加' } },
     },
     include: { pocketMoneyRecord: true },
+    orderBy: [{ facility: 'asc' }, { id: 'asc' }],
   })
 
   let totalAllocated = 0
   let totalUsed = 0
 
   const records = persons.map(person => {
-    // 既存のレコードがなければデフォルト値（5000円など）とする
-    const rec = person.pocketMoneyRecord || {
-      id: -person.id, // 仮のID
-      allocated: 5000,
-      used: 0,
-      remaining: 5000
+    const rec = person.pocketMoneyRecord
+    const corporate = isCorporateAllowance(person.allowanceManagementType)
+    const allocated = rec ? rec.allocated : null
+    const used = rec ? rec.used : 0
+    if (corporate && allocated !== null) {
+      totalAllocated += allocated
+      totalUsed += used
     }
-    totalAllocated += rec.allocated
-    totalUsed += rec.used
 
     return {
-      id: rec.id,
-      allocated: rec.allocated,
-      used: rec.used,
-      remaining: rec.remaining,
+      id: person.id,
+      allocated,
+      used,
+      remaining: allocated === null ? null : allocated - used,
       person: {
         id: person.id,
         name: person.name,
@@ -44,7 +47,7 @@ export async function GET(request: Request) {
         // 小遣いの事前ルール（一般画面の管理区分ごとの表示に使う）
         allowanceManagementType: person.allowanceManagementType,
         allowanceRequiresCollection: person.allowanceRequiresCollection,
-      }
+      },
     }
   })
 
@@ -53,21 +56,9 @@ export async function GET(request: Request) {
     total: {
       allocated: totalAllocated,
       used: totalUsed,
-      remaining: totalAllocated - totalUsed
-    }
+      remaining: totalAllocated - totalUsed,
+    },
+    // 法人がお金を預かる人のうち、支給額が未設定の人数
+    unsetCount: records.filter(r => r.allocated === null && isCorporateAllowance(r.person.allowanceManagementType)).length,
   })
-}
-
-export async function POST(request: Request) {
-  const body = await request.json()
-  const record = await prisma.pocketMoneyRecord.create({
-    data: {
-      tripId: body.tripId || 1,
-      personId: body.personId,
-      allocated: body.allocated,
-      used: body.used || 0,
-      remaining: body.allocated - (body.used || 0)
-    }
-  })
-  return NextResponse.json(record)
 }

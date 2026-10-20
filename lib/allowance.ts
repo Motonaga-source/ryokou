@@ -15,6 +15,12 @@ export function isAllowanceType(value: unknown): value is AllowanceType {
 // 自己管理（法人準備なし）は法人のお金を渡さないため、事後回収の対象にならない
 export const canRequireCollection = (type: string | null) => type !== 'SELF'
 
+// 法人が小遣いを預かる（支給額を設定・精算する）対象か。自己管理（法人準備なし）は対象外
+export const isCorporateAllowance = (type: string | null) => type !== 'SELF'
+
+// 支給額・使用額として受け付ける上限（入力ミス防止）
+export const MAX_ALLOWANCE_YEN = 1_000_000
+
 export interface AllowanceRule {
   id: number
   name: string
