@@ -9,7 +9,7 @@ import { BATHING_ROLES, BATH_BADGES, sortPersons } from '@/lib/bathing'
 import { BANQUET_COLUMNS, tablesOf } from '@/lib/banquet'
 import { FAMILY_GROUP, OTHER_LOCATION, PICKUP_LOCATIONS, vehicleGroupId, walkGroupId } from '@/lib/pickup'
 import { SUPPLY_CATEGORIES, WHEELCHAIR_LOAN } from '@/lib/supplies'
-import { tablesByRow } from '@/lib/lunch'
+import { LunchFloorPlan, FLOOR_PLAN_WIDTH_PX } from '@/components/LunchFloorPlan'
 import PrintButton from './PrintButton'
 
 export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理システム' }
@@ -17,6 +17,8 @@ export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理シ
 const TRIP_ID = 1
 const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 const BUS_ROWS = Array.from({ length: 12 }, (_, i) => 12 - i)
+// 昼食の配置図を A4 の印字幅（約718px）に収める縮小率
+const LUNCH_PLAN_ZOOM = Math.floor((718 / FLOOR_PLAN_WIDTH_PX) * 100) / 100
 
 // 部屋番号が数字だけのときだけ「号室」を付ける（"363トリプルベッド" のような名前はそのまま）
 const roomLabel = (roomNumber: string) => (/^\d+$/.test(roomNumber.trim()) ? `${roomNumber}号室` : roomNumber)
@@ -315,7 +317,7 @@ export default async function PrintPage() {
       </Section>
       <PageBreak />
 
-      {/* ⑧ 昼食 席順（テーブル単位） */}
+      {/* ⑧ 昼食 席順（管理画面と同じ座席図面を A4 幅に縮小して印刷） */}
       <Section title="⑧ 昼食 席順（2日目 13:00 伊賀の里もくもく手づくりファーム）">
         {(() => {
           const wheelchairUsers = persons.filter(p => p.isWheelchair).length
@@ -327,31 +329,19 @@ export default async function PrintPage() {
             </p>
           )
         })()}
-        <div className="space-y-4">
-          {tablesByRow(lunchTables).map((row, i) => (
-            <div key={i}>
-              <SubHeading>{i === 0 ? '奥の列（テーブル9・8・7・6）' : '手前の列（テーブル16〜21・レジカウンター側）'}</SubHeading>
-              {/* 奥の列は4卓を横一列、手前の列は6卓を3列×2段にして A4縦でも文字が潰れないようにする */}
-              <div className={`grid gap-2.5 ${row.length <= 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                {row.map(table => {
-                  const tableSeats = lunchSeats.filter(a => a.tableId === table.id && byId.has(a.personId))
-                  return (
-                    <LunchTableCard
-                      key={table.id}
-                      tableNo={table.tableNo}
-                      capacity={table.capacity}
-                      wheelchairSlots={table.wheelchairSlots}
-                      members={pick(tableSeats.map(a => a.personId))}
-                      // 車椅子の方が普通の席（移乗が必要）／車椅子以外の方が車椅子枠（椅子が必要）
-                      transfer={tableSeats.filter(a => a.seatIndex >= table.wheelchairSlots && byId.get(a.personId)?.isWheelchair).length}
-                      noChair={tableSeats.filter(a => a.seatIndex < table.wheelchairSlots && !byId.get(a.personId)?.isWheelchair).length}
-                    />
-                  )
-                })}
-              </div>
+        {(() => {
+          const seatMap = new Map(
+            lunchSeats.filter(a => byId.has(a.personId)).map(a => [`${a.tableId}:${a.seatIndex}`, byId.get(a.personId)!]),
+          )
+          return (
+            // 配置図（幅 FLOOR_PLAN_WIDTH_PX）を A4 の印字幅（約190mm ≒ 718px）に収まるよう縮小する。
+            // transform: scale と違い zoom はレイアウト上の大きさも縮むので、下に余白が残らない
+            <div className="overflow-hidden" style={{ zoom: LUNCH_PLAN_ZOOM }}>
+              <LunchFloorPlan tables={lunchTables} personAt={seat => seatMap.get(`${seat.tableId}:${seat.seatIndex}`) ?? null} />
             </div>
-          ))}
-        </div>
+          )
+        })()}
+        <p className="mt-1 text-[10px] text-gray-600">♿ のピンクの点線は車椅子のまま座る席、⚠️ は車椅子枠と席の使い方が合っていない席です。</p>
       </Section>
     </div>
   )
@@ -492,43 +482,6 @@ function BanquetTable({ label, seats }: { label: string; seats: { seatId: string
       {row(top)}
       <div className="my-1 h-2 rounded-sm bg-amber-700/40" aria-hidden />
       {bottom.length > 0 && row(bottom)}
-    </div>
-  )
-}
-
-// 昼食の1テーブル（印刷用）。ヘッダーにテーブル番号・定員と車椅子枠・警告、本文は座っている人の名前だけ
-function LunchTableCard({ tableNo, capacity, wheelchairSlots, members, transfer, noChair }: {
-  tableNo: number
-  capacity: number
-  wheelchairSlots: number
-  members: P[]
-  transfer: number
-  noChair: number
-}) {
-  return (
-    <div className="break-inside-avoid print-avoid-break rounded-md border border-gray-400 overflow-hidden bg-white">
-      <div className="bg-gray-100 border-b border-gray-400 px-2 py-1.5">
-        <div className="flex items-baseline justify-between gap-1">
-          <span className="text-[13px] font-bold">テーブル{tableNo}</span>
-          <span className="text-[11px] font-bold">{members.length}/{capacity}名</span>
-        </div>
-        <div className="text-[10px] text-gray-600">
-          定員{capacity}名{wheelchairSlots > 0 ? `・♿ 車椅子枠${wheelchairSlots}` : ''}
-        </div>
-        {transfer > 0 && <div className="mt-0.5 rounded bg-orange-100 px-1 text-[10px] font-bold text-orange-800">⚠️ 椅子への移乗が必要 {transfer}名</div>}
-        {noChair > 0 && <div className="mt-0.5 rounded bg-orange-100 px-1 text-[10px] font-bold text-orange-800">⚠️ 車椅子枠に椅子の用意 {noChair}名</div>}
-      </div>
-      {members.length === 0 ? (
-        <p className="px-2 py-1.5 text-[10px] text-gray-400">（未配置）</p>
-      ) : (
-        <ul className={`grid gap-1 p-1.5 ${members.length > 6 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {members.map(p => (
-            <li key={p.id} className={`break-words [word-break:keep-all] leading-snug rounded border px-1.5 py-0.5 text-[11px] ${personColor(p)}`}>
-              {personLabel(p)}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   )
 }
