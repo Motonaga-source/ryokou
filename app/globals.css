@@ -43,6 +43,31 @@
   page-break-inside: avoid;
 }
 
+/* 横向きで印刷するページ（/print の昼食席順）。A4横の印字幅 = 297mm - 余白8mm×2 = 281mm ≒ 1062px */
+@page lunch-landscape {
+  size: A4 landscape;
+  margin: 8mm;
+}
+
+@media print {
+  /* 名前付きページが切り替わるので前後は自動で改ページされる（break-after を付けると末尾に白紙が1枚増える） */
+  .print-landscape-page {
+    page: lunch-landscape;
+    break-before: page;
+  }
+}
+
+/* 昼食の配置図（幅1110px）の縮小率。画面のプレビュー（A4縦の幅 ≒ 718px）では縮小し、
+   印刷時は A4横の幅（≒ 1062px）に収まるよう 95% にする */
+.lunch-plan-zoom {
+  zoom: 0.64;
+}
+@media print {
+  .lunch-plan-zoom {
+    zoom: 0.95;
+  }
+}
+
 /* 印刷時にこの要素の後ろで改ページする（/print の各セクションの区切り） */
 .break-after-page {
   break-after: page;

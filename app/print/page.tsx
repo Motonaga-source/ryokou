@@ -9,7 +9,7 @@ import { BATHING_ROLES, BATH_BADGES, sortPersons } from '@/lib/bathing'
 import { BANQUET_COLUMNS, tablesOf } from '@/lib/banquet'
 import { FAMILY_GROUP, OTHER_LOCATION, PICKUP_LOCATIONS, vehicleGroupId, walkGroupId } from '@/lib/pickup'
 import { SUPPLY_CATEGORIES, WHEELCHAIR_LOAN } from '@/lib/supplies'
-import { LunchFloorPlan, FLOOR_PLAN_WIDTH_PX } from '@/components/LunchFloorPlan'
+import { LunchFloorPlan } from '@/components/LunchFloorPlan'
 import PrintButton from './PrintButton'
 
 export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理システム' }
@@ -17,8 +17,6 @@ export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理シ
 const TRIP_ID = 1
 const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 const BUS_ROWS = Array.from({ length: 12 }, (_, i) => 12 - i)
-// 昼食の配置図を A4 の印字幅（約718px）に収める縮小率
-const LUNCH_PLAN_ZOOM = Math.floor((718 / FLOOR_PLAN_WIDTH_PX) * 100) / 100
 
 // 部屋番号が数字だけのときだけ「号室」を付ける（"363トリプルベッド" のような名前はそのまま）
 const roomLabel = (roomNumber: string) => (/^\d+$/.test(roomNumber.trim()) ? `${roomNumber}号室` : roomNumber)
@@ -315,9 +313,9 @@ export default async function PrintPage() {
         </div>
         <div className="mt-3 rounded-lg bg-red-700 text-white text-center font-bold py-1.5 tracking-[1em]">舞台</div>
       </Section>
-      <PageBreak />
 
-      {/* ⑧ 昼食 席順（管理画面と同じ座席図面を A4 幅に縮小して印刷） */}
+      {/* ⑧ 昼食 席順（管理画面と同じ座席図面）。このページだけ A4 横向きで印刷する（globals.css の @page lunch-landscape） */}
+      <div className="print-landscape-page">
       <Section title="⑧ 昼食 席順（2日目 13:00 伊賀の里もくもく手づくりファーム）">
         {(() => {
           const wheelchairUsers = persons.filter(p => p.isWheelchair).length
@@ -334,15 +332,16 @@ export default async function PrintPage() {
             lunchSeats.filter(a => byId.has(a.personId)).map(a => [`${a.tableId}:${a.seatIndex}`, byId.get(a.personId)!]),
           )
           return (
-            // 配置図（幅 FLOOR_PLAN_WIDTH_PX）を A4 の印字幅（約190mm ≒ 718px）に収まるよう縮小する。
-            // transform: scale と違い zoom はレイアウト上の大きさも縮むので、下に余白が残らない
-            <div className="overflow-hidden" style={{ zoom: LUNCH_PLAN_ZOOM }}>
+            // 配置図（幅 FLOOR_PLAN_WIDTH_PX）の縮小率は globals.css の .lunch-plan-zoom で指定
+            // （画面のプレビューは A4縦の幅に合わせて縮小、印刷時は A4横の幅に合わせてほぼ等倍）
+            <div className="lunch-plan-zoom overflow-hidden">
               <LunchFloorPlan tables={lunchTables} personAt={seat => seatMap.get(`${seat.tableId}:${seat.seatIndex}`) ?? null} />
             </div>
           )
         })()}
-        <p className="mt-1 text-[10px] text-gray-600">♿ のピンクの点線は車椅子のまま座る席、⚠️ は車椅子枠と席の使い方が合っていない席です。</p>
+        <p className="mt-1 text-[11px] text-gray-600">♿ のピンクの点線は車椅子のまま座る席、⚠️ は車椅子枠と席の使い方が合っていない席です。</p>
       </Section>
+      </div>
     </div>
   )
 }
