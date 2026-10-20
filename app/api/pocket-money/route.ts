@@ -39,7 +39,11 @@ export async function GET(request: Request) {
         id: person.id,
         name: person.name,
         gender: person.gender,
-        facility: person.facility
+        facility: person.facility,
+        isWheelchair: person.isWheelchair,
+        // 小遣いの事前ルール（一般画面の管理区分ごとの表示に使う）
+        allowanceManagementType: person.allowanceManagementType,
+        allowanceRequiresCollection: person.allowanceRequiresCollection,
       }
     }
   })
