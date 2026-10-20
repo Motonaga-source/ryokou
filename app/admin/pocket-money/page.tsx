@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import AllowanceRules from '@/components/AllowanceRules'
 
 interface PocketMoneyRecord {
   id: number
@@ -85,8 +86,11 @@ export default function PocketMoneyPage() {
 
       <div className="pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-gray-800">💴 小遣い精算</h1>
-        <p className="text-gray-500 text-sm mt-1">利用者への支給額・使用額・残額管理</p>
+        <p className="text-gray-500 text-sm mt-1">小遣いの管理区分・事後回収の設定と、支給額・使用額・残額の管理</p>
       </div>
+
+      {/* 事前のルール設定（管理区分・事後回収の要否） */}
+      <AllowanceRules />
 
       {/* 合計サマリー */}
       {data && (

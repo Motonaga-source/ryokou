@@ -53,6 +53,8 @@ model Person {
   isFishNG     Boolean  @default(false) // 魚料理NG
   pickupMemo   String?  // 集合・送迎の特記事項
   isRollCalled Boolean  @default(false) // 簡易点呼のチェック状態（履歴なし。点呼のたびに一括クリアして使い回す）
+  allowanceManagementType     String?  // 小遣いの管理区分: "STAFF"（スタッフ管理）| "USER"（本人管理）| "SELF"（自己管理・法人準備なし）
+  allowanceRequiresCollection Boolean  @default(false) // 小遣いの事後回収（お釣り・レシート等）が必要か
   password  String?
   facility  String?
   notes     String?
