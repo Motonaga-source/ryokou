@@ -189,7 +189,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         <ChangePersonButton />
       </div>
 
-      <Card icon="🚗" title="集合・送迎">
+      <Card icon="🚗" title="集合・送迎" href="/pickup" linkLabel="送迎を見る">
         {pickupInfo ? (
           <>
             <Main>{pickupInfo.method}</Main>
@@ -199,7 +199,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         ) : <Undecided />}
       </Card>
 
-      <Card icon="🚌" title="バス座席">
+      <Card icon="🚌" title="バス座席" href="/bus" linkLabel="座席表を見る">
         {busInfo ? (
           <>
             <Main>{busInfo.seat}</Main>
@@ -214,7 +214,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         ))}
       </Card>
 
-      <Card icon="🏨" title="部屋">
+      <Card icon="🏨" title="部屋" href="/rooms" linkLabel="部屋割りを見る">
         {roomAssignments.length === 0 && <Undecided />}
         {roomAssignments.map(a => (
           <div key={a.id}>
@@ -225,7 +225,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         ))}
       </Card>
 
-      <Card icon="📋" title="チーム">
+      <Card icon="📋" title="チーム" href="/teams" linkLabel="チームを見る">
         {teamMemberships.length === 0 && <Undecided />}
         {teamMemberships.map(m => {
           const leaderIds = new Set(m.team.members.filter(x => x.isLeader).map(x => x.personId))
@@ -241,7 +241,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         })}
       </Card>
 
-      <Card icon="♨️" title="入浴">
+      <Card icon="♨️" title="入浴" href="/bathing" linkLabel="入浴管理を見る">
         {bathingInfo ? (
           <>
             <Main>
@@ -277,7 +277,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         ) : <Undecided />}
       </Card>
 
-      <Card icon="🍶" title="宴会">
+      <Card icon="🍶" title="宴会" href="/banquet" linkLabel="席順を見る">
         {banquetInfo ? (
           <>
             <Main>{banquetInfo.label}</Main>
@@ -286,7 +286,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         ) : <Undecided />}
       </Card>
 
-      <Card icon="🍖" title="昼食（2日目 もくもく手づくりファーム）">
+      <Card icon="🍖" title="昼食（2日目 もくもく手づくりファーム）" href="/lunch" linkLabel="席順を見る">
         {lunchSeat ? (
           <>
             <Main>
@@ -304,7 +304,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         ) : <Undecided />}
       </Card>
 
-      <Card icon="🗓️" title="スケジュール（自分の担当）">
+      <Card icon="🗓️" title="スケジュール（自分の担当）" href="/schedule" linkLabel="全体を見る">
         {mySchedules.length === 0 ? (
           <p className="text-sm text-gray-500">担当者に名前が入っている予定はありません。</p>
         ) : (
@@ -324,16 +324,33 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
             ))}
           </ul>
         )}
-        <Link href="/schedule" className="mt-3 inline-block text-sm text-blue-600 hover:underline">全体のスケジュールを見る →</Link>
       </Card>
     </div>
   )
 }
 
-function Card({ icon, title, children }: { icon: string; title: string; children: ReactNode }) {
+// href を渡すと、ヘッダー右上に全体画面（一般向けの閲覧ページ）へのショートカットを表示する
+function Card({ icon, title, href, linkLabel = '全体を見る', children }: {
+  icon: string
+  title: string
+  href?: string
+  linkLabel?: string
+  children: ReactNode
+}) {
   return (
     <section className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
-      <h2 className="px-4 py-2.5 bg-gray-50 border-b-2 border-gray-100 font-bold text-gray-800">{icon} {title}</h2>
+      <div className="px-4 py-2.5 bg-gray-50 border-b-2 border-gray-100 flex items-center justify-between gap-2">
+        <h2 className="min-w-0 font-bold text-gray-800">{icon} {title}</h2>
+        {href && (
+          <Link
+            href={href}
+            className="shrink-0 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 active:bg-blue-100"
+          >
+            <span aria-hidden>↗</span>
+            {linkLabel}
+          </Link>
+        )}
+      </div>
       <div className="p-4">{children}</div>
     </section>
   )
