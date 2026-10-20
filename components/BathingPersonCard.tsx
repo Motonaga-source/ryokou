@@ -1,6 +1,6 @@
 import { forwardRef, type HTMLAttributes, type SyntheticEvent } from 'react'
 import FishNGBadge from '@/components/FishNGBadge'
-import { BAN_NUMBERS, type BanNumber, type BathingPerson } from '@/lib/bathing'
+import { BAN_NUMBERS, isStaff, type BanNumber, type BathingPerson } from '@/lib/bathing'
 
 // 班ごとの色（選択中のボタン・閲覧用ラベル）
 const BAN_STYLES: Record<BanNumber, string> = {
@@ -66,7 +66,13 @@ const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPers
         </span>
         {person.isFishNG && <FishNGBadge />}
       </div>
-      {banMode === 'edit' && (
+      {/* スタッフは班に関係なく最初から最後まで担当するため、班の代わりに「担当」と表示 */}
+      {banMode && isStaff(person) && (
+        <span className="shrink-0 px-1.5 py-0.5 rounded border border-slate-500 bg-slate-600 text-white text-[11px] font-bold leading-none">
+          担当
+        </span>
+      )}
+      {banMode === 'edit' && !isStaff(person) && (
         <div className="shrink-0 flex items-center gap-0.5 print:hidden" role="group" aria-label="班">
           {BAN_NUMBERS.map(n => {
             const active = person.banNumber === n
@@ -95,7 +101,7 @@ const BathingPersonCard = forwardRef<HTMLDivElement, Props>(function BathingPers
           })}
         </div>
       )}
-      {banMode && person.banNumber && BAN_STYLES[person.banNumber as BanNumber] && (
+      {banMode && !isStaff(person) && person.banNumber && BAN_STYLES[person.banNumber as BanNumber] && (
         <span className={`shrink-0 px-1.5 py-0.5 rounded border text-[11px] font-bold leading-none ${banMode === 'edit' ? 'hidden print:inline' : ''} ${BAN_STYLES[person.banNumber as BanNumber]}`}>
           {person.banNumber}班
         </span>

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import BathingPersonCard from '@/components/BathingPersonCard'
+import BanSectionLabel from '@/components/BanSectionLabel'
 import {
   BATHING_ROLES,
   BATH_BADGES,
   buildBathingBoard,
+  sectionsByBan,
   type BathingBoard,
   type BathingPerson,
 } from '@/lib/bathing'
@@ -88,9 +90,15 @@ function GroupCard({ group, persons }: { group: (typeof BATHING_ROLES)[number], 
         </div>
         <p className="text-xs text-gray-600">{group.description}（スタッフ{staffCount}名）</p>
       </div>
-      <div className="min-h-[140px] p-3 flex flex-col gap-2">
-        {persons.map(p => (
-          <BathingPersonCard key={p.id} person={p} banMode="label" />
+      {/* 担当スタッフ → 利用者（1班 → 2班 → 3班 → 班未設定）の順に見出しで区切る */}
+      <div className="min-h-[140px] p-3 flex flex-col gap-2.5">
+        {sectionsByBan(persons).map(sec => (
+          <div key={sec.key} className="flex flex-col gap-1.5">
+            <BanSectionLabel sectionKey={sec.key} label={sec.label} count={sec.persons.length} />
+            {sec.persons.map(p => (
+              <BathingPersonCard key={p.id} person={p} banMode="label" />
+            ))}
+          </div>
         ))}
       </div>
     </div>

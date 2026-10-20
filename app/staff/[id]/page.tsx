@@ -4,10 +4,11 @@ export const dynamic = 'force-dynamic'
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { BATHING_ROLES, BATH_BADGES, sortPersons } from '@/lib/bathing'
+import { BATHING_ROLES, BATH_BADGES, sectionsByBan, sortPersons } from '@/lib/bathing'
 import { BANQUET_COLUMNS, tablesOf } from '@/lib/banquet'
 import { FAMILY_GROUP, OTHER_LOCATION, PICKUP_LOCATIONS, vehicleIdOf, walkGroupId } from '@/lib/pickup'
 import FishNGBadge from '@/components/FishNGBadge'
+import BanSectionLabel from '@/components/BanSectionLabel'
 import ChangePersonButton from './ChangePersonButton'
 
 const TRIP_ID = 1
@@ -130,13 +131,37 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
   }
 
   // ===== 入浴 =====
-  let bathingInfo: { role: (typeof BATHING_ROLES)[number]; ban: number | null; members: P[] } | null = null
+  // スタッフは班に関係なく最初から最後まで担当するため、担当する湯（男湯・女湯）に来る全ての班の利用者を表示する。
+  // 男湯・女湯の役割（大浴場・脱衣所サポート・送迎・誘導）は同じ湯の利用者全員、部屋風呂・自立入浴は同じ役割の利用者が対象
+  let bathingInfo: {
+    role: (typeof BATHING_ROLES)[number]
+    ban: number | null
+    sameBan: P[] // 利用者: 同じ班の利用者
+    users: (P & { banNumber: number | null })[] // スタッフ: 担当する利用者（全ての班）
+    staff: { person: P; roleLabel: string }[] // 同じ湯（または同じ役割）を担当するスタッフ
+  } | null = null
   const bathingRole = BATHING_ROLES.find(r => r.value === bathing?.role)
   if (bathing && bathingRole) {
-    const same = await prisma.bathingAssignment.findMany({
-      where: { tripId: TRIP_ID, role: bathing.role, banNumber: bathing.banNumber },
-    })
-    bathingInfo = { role: bathingRole, ban: bathing.banNumber, members: pick(same.map(b => b.personId)) }
+    const all = await prisma.bathingAssignment.findMany({ where: { tripId: TRIP_ID, role: { not: null } } })
+    const roleOf = (value: string | null) => BATHING_ROLES.find(r => r.value === value)
+    const inScope = (value: string | null) => {
+      const r = roleOf(value)
+      return !!r && (bathingRole.bath ? r.bath === bathingRole.bath : r.value === bathingRole.value)
+    }
+    const scoped = all.filter(a => inScope(a.role) && byId.has(a.personId))
+    const banOf = new Map(all.map(a => [a.personId, a.banNumber]))
+    bathingInfo = {
+      role: bathingRole,
+      ban: me.role === 'STAFF' ? null : bathing.banNumber,
+      sameBan: pick(all.filter(a => a.role === bathing.role && a.banNumber === bathing.banNumber && byId.get(a.personId)?.role !== 'STAFF').map(a => a.personId)),
+      users: sortPersons(
+        scoped.filter(a => byId.get(a.personId)?.role !== 'STAFF').map(a => ({ ...byId.get(a.personId)!, banNumber: banOf.get(a.personId) ?? null })),
+      ),
+      staff: pick(scoped.filter(a => byId.get(a.personId)?.role === 'STAFF').map(a => a.personId)).map(person => ({
+        person,
+        roleLabel: roleOf(scoped.find(a => a.personId === person.id)?.role ?? null)?.baseLabel ?? '',
+      })),
+    }
   }
 
   // ===== スケジュール（担当者欄に自分の名前・姓・「全員」が含まれる予定） =====
@@ -226,9 +251,28 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
                   {BATH_BADGES[bathingInfo.role.bath].label}
                 </span>
               )}
-              <span className="ml-2 align-middle text-sm font-bold text-indigo-700">{bathingInfo.ban ? `${bathingInfo.ban}班` : '班は未設定'}</span>
+              {me.role === 'STAFF' ? (
+                <span className="ml-2 align-middle text-xs font-bold rounded px-1.5 py-0.5 bg-slate-600 text-white">担当（全ての班）</span>
+              ) : (
+                <span className="ml-2 align-middle text-sm font-bold text-indigo-700">{bathingInfo.ban ? `${bathingInfo.ban}班` : '班は未設定'}</span>
+              )}
             </Main>
-            <Members label={bathingInfo.ban ? `同じ班（${bathingInfo.ban}班）のメンバー` : '同じ役割のメンバー'} persons={bathingInfo.members} meId={me.id} />
+            {me.role === 'STAFF' ? (
+              <>
+                <Sub>
+                  {bathingInfo.role.bath
+                    ? `${BATH_BADGES[bathingInfo.role.bath].label}に来る全ての利用者を、入浴の順番（班）ごとに表示しています。`
+                    : `${bathingInfo.role.baseLabel}の全ての利用者を、入浴の順番（班）ごとに表示しています。`}
+                </Sub>
+                <BanSections users={bathingInfo.users} />
+              </>
+            ) : (
+              <Members label={bathingInfo.ban ? `同じ班（${bathingInfo.ban}班）の利用者` : '同じ役割の利用者'} persons={bathingInfo.sameBan} meId={me.id} />
+            )}
+            <StaffList
+              label={me.role === 'STAFF' ? '一緒に担当するスタッフ' : '担当スタッフ'}
+              staff={bathingInfo.staff.filter(s => s.person.id !== me.id)}
+            />
           </>
         ) : <Undecided />}
       </Card>
@@ -305,6 +349,58 @@ function Sub({ children }: { children: ReactNode }) {
 
 function Undecided() {
   return <p className="text-sm text-gray-400">未定（まだ割り当てられていません）</p>
+}
+
+// スタッフ向け: 担当する利用者を班（入浴の順番）ごとに表示
+function BanSections({ users }: { users: (P & { banNumber: number | null })[] }) {
+  if (users.length === 0) return <p className="mt-3 text-sm text-gray-400">担当する利用者はまだ割り当てられていません。</p>
+  return (
+    <div className="mt-3 space-y-3">
+      <p className="text-xs font-semibold text-gray-500">担当する利用者（全ての班・{users.length}名）</p>
+      {sectionsByBan(users).map(sec => (
+        <div key={sec.key} className="space-y-1.5">
+          <BanSectionLabel sectionKey={sec.key} label={sec.label} count={sec.persons.length} />
+          <div className="flex flex-wrap gap-1.5">
+            {sec.persons.map(p => <NameChip key={p.id} person={p} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StaffList({ label, staff }: { label: string; staff: { person: P; roleLabel: string }[] }) {
+  return (
+    <div className="mt-3">
+      <p className="text-xs font-semibold text-gray-500 mb-1.5">{label}（{staff.length}名）</p>
+      {staff.length === 0 ? (
+        <p className="text-sm text-gray-400">まだ割り当てられていません</p>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {staff.map(({ person, roleLabel }) => (
+            <span key={person.id} className="inline-flex flex-col">
+              <NameChip person={person} />
+              <span className="text-[10px] text-gray-500 pl-1">{roleLabel}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NameChip({ person: p }: { person: P }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-lg border-2 px-2 py-1 text-sm font-semibold text-gray-800 ${
+        p.isWheelchair ? 'bg-pink-100 border-pink-400' : p.role === 'STAFF' ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-300'
+      }`}
+    >
+      {p.isWheelchair && <span className="text-xs">♿️</span>}
+      {p.name}
+      {p.isFishNG && <FishNGBadge />}
+    </span>
+  )
 }
 
 function Members({ label, persons, meId, leaderIds, empty }: {

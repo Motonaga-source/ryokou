@@ -5,11 +5,12 @@ export const dynamic = 'force-dynamic'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { prisma } from '@/lib/prisma'
-import { BATHING_ROLES, BATH_BADGES, sortPersons } from '@/lib/bathing'
+import { BATHING_ROLES, BATH_BADGES, sectionsByBan, sortPersons } from '@/lib/bathing'
 import { BANQUET_COLUMNS, tablesOf } from '@/lib/banquet'
 import { FAMILY_GROUP, OTHER_LOCATION, PICKUP_LOCATIONS, vehicleGroupId, walkGroupId } from '@/lib/pickup'
 import { SUPPLY_CATEGORIES, WHEELCHAIR_LOAN } from '@/lib/supplies'
 import { LunchFloorPlan } from '@/components/LunchFloorPlan'
+import BanSectionLabel from '@/components/BanSectionLabel'
 import PrintButton from './PrintButton'
 
 export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理システム' }
@@ -271,9 +272,11 @@ export default async function PrintPage() {
       <Section title="⑥ 入浴管理">
         <div className="grid grid-cols-2 gap-2">
           {BATHING_ROLES.map(role => {
-            const members = pick(bathing.filter(b => b.role === role.value).map(b => b.personId))
-              .map(p => ({ ...p, banNumber: banByPerson.get(p.id) ?? null }))
-            const sorted = sortPersons(members)
+            // スタッフは班なし（担当）、利用者は班（入浴の順番）ごと
+            const sorted = sortPersons(
+              pick(bathing.filter(b => b.role === role.value).map(b => b.personId))
+                .map(p => ({ ...p, banNumber: p.role === 'STAFF' ? null : banByPerson.get(p.id) ?? null })),
+            )
             return (
               <Box
                 key={role.value}
@@ -287,7 +290,16 @@ export default async function PrintPage() {
                 }
                 right={`${sorted.length}名`}
               >
-                <NameList persons={sorted} banByPerson={banByPerson} />
+                <div className="space-y-1.5">
+                  {sectionsByBan(sorted).map(sec => (
+                    <div key={sec.key} className="space-y-0.5">
+                      <BanSectionLabel sectionKey={sec.key} label={sec.label} count={sec.persons.length} />
+                      {/* 人数が多い見出しは2列にして、入浴管理が A4 1枚に収まるようにする */}
+                      <NameList persons={sec.persons} columns={sec.persons.length > 4 ? 2 : 1} />
+                    </div>
+                  ))}
+                  {sorted.length === 0 && <p className="text-[10px] text-gray-400">（なし）</p>}
+                </div>
               </Box>
             )
           })}

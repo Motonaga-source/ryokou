@@ -107,20 +107,35 @@ export interface BathingPerson {
   participations?: { status: string }[]
 }
 
-// 並び順: 班（1班 → 2班 → 3班 → 未設定）→ スタッフ → 車椅子 → 一般
+export const isStaff = (p: { role: string }) => p.role === 'STAFF'
+
+// 並び順: スタッフ → 利用者（班 1班 → 2班 → 3班 → 未設定）→ 車椅子 → 一般
+// 入浴の班は利用者だけのもの。スタッフは班に関係なく最初から最後まで担当するため常に先頭
+// （班を持たない他の画面では、従来どおりスタッフ → 車椅子 → 一般の順になる）
 export function sortPersons<T extends BathingPerson>(persons: T[]): T[] {
   return [...persons].sort((a, b) => {
+    const aStaff = isStaff(a) ? 1 : 0
+    const bStaff = isStaff(b) ? 1 : 0
+    if (aStaff !== bStaff) return bStaff - aStaff
     const aBan = a.banNumber ?? Infinity
     const bBan = b.banNumber ?? Infinity
     if (aBan !== bBan) return aBan - bBan
-    const aStaff = a.role === 'STAFF' ? 1 : 0
-    const bStaff = b.role === 'STAFF' ? 1 : 0
-    if (aStaff !== bStaff) return bStaff - aStaff
     const aWheel = a.isWheelchair ? 1 : 0
     const bWheel = b.isWheelchair ? 1 : 0
     if (aWheel !== bWheel) return bWheel - aWheel
     return a.id - b.id
   })
+}
+
+// 枠内の表示用に「担当スタッフ」「1班」「2班」…「班未設定」の見出しごとに分ける（空の見出しは除く）
+export function sectionsByBan<T extends BathingPerson>(persons: T[]): { key: string; label: string; ban: number | null; persons: T[] }[] {
+  const sorted = sortPersons(persons)
+  const users = sorted.filter(p => !isStaff(p))
+  return [
+    { key: 'staff', label: '担当スタッフ', ban: null, persons: sorted.filter(isStaff) },
+    ...BAN_NUMBERS.map(n => ({ key: `ban-${n}`, label: `${n}班`, ban: n as number | null, persons: users.filter(p => p.banNumber === n) })),
+    { key: 'ban-none', label: '班未設定', ban: null, persons: users.filter(p => !isBanNumber(p.banNumber)) },
+  ].filter(s => s.persons.length > 0)
 }
 
 export type BathingBoard = Record<BathingRoleValue, BathingPerson[]>
@@ -138,7 +153,7 @@ export function buildBathingBoard(
     if (p.participations?.[0]?.status !== '参加') continue
     const assignment = assignmentByPerson.get(p.id)
     const role = assignment?.role
-    if (isBathingRole(role)) groups[role].push({ ...p, banNumber: assignment?.banNumber ?? null })
+    if (isBathingRole(role)) groups[role].push({ ...p, banNumber: isStaff(p) ? null : assignment?.banNumber ?? null })
     else unassigned.push({ ...p, banNumber: null })
   }
 

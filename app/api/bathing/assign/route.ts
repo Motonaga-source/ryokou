@@ -9,6 +9,7 @@ import { isBathingRole, isBanNumber } from '@/lib/bathing'
 // body: { tripId?: number, personId: number, role?: BathingRole | null, banNumber?: 1 | 2 | 3 | null }
 // role が null の場合は割り当てを解除（未割り当てへ移動）
 // role を省略して banNumber のみ送った場合は、既存の割り当ての班だけを更新
+// 班（入浴の順番）は利用者だけのもの。スタッフは班に関係なく担当するため、スタッフの班は常に空にする
 export async function PUT(request: Request) {
   const session = await getSession()
   if (!session?.isAdmin) {
@@ -24,10 +25,19 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'personId が不正です' }, { status: 400 })
   }
 
+  const person = await prisma.person.findUnique({ where: { id: personId }, select: { role: true } })
+  if (!person) {
+    return NextResponse.json({ error: '参加者が見つかりません' }, { status: 404 })
+  }
+  const staff = person.role === 'STAFF'
+
   if (!('role' in body)) {
     const banNumber = body.banNumber ?? null
     if (banNumber !== null && !isBanNumber(banNumber)) {
       return NextResponse.json({ error: 'banNumber が不正です' }, { status: 400 })
+    }
+    if (staff && banNumber !== null) {
+      return NextResponse.json({ error: 'スタッフには班を設定できません（班は利用者の入浴の順番です）' }, { status: 400 })
     }
     const { count } = await prisma.bathingAssignment.updateMany({
       where: { tripId, personId, role: { not: null } },
@@ -51,7 +61,7 @@ export async function PUT(request: Request) {
   const assignment = await prisma.bathingAssignment.upsert({
     where: { tripId_personId: { tripId, personId } },
     create: { tripId, personId, role },
-    update: { role },
+    update: staff ? { role, banNumber: null } : { role },
   })
   return NextResponse.json(assignment)
 }
