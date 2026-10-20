@@ -327,29 +327,25 @@ export default async function PrintPage() {
             </p>
           )
         })()}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {tablesByRow(lunchTables).map((row, i) => (
             <div key={i}>
-              <SubHeading>{i === 0 ? '奥の列' : '手前の列（レジカウンター側）'}</SubHeading>
-              <div className="grid grid-cols-3 gap-2">
+              <SubHeading>{i === 0 ? '奥の列（テーブル9・8・7・6）' : '手前の列（テーブル16〜21・レジカウンター側）'}</SubHeading>
+              {/* 奥の列は4卓を横一列、手前の列は6卓を3列×2段にして A4縦でも文字が潰れないようにする */}
+              <div className={`grid gap-2.5 ${row.length <= 4 ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 {row.map(table => {
                   const tableSeats = lunchSeats.filter(a => a.tableId === table.id && byId.has(a.personId))
-                  const members = pick(tableSeats.map(a => a.personId))
-                  // 車椅子の方が普通の席（移乗が必要）／車椅子以外の方が車椅子枠（椅子が必要）
-                  const transfer = tableSeats.filter(a => a.seatIndex >= table.wheelchairSlots && byId.get(a.personId)?.isWheelchair).length
-                  const noChair = tableSeats.filter(a => a.seatIndex < table.wheelchairSlots && !byId.get(a.personId)?.isWheelchair).length
-                  const warn = [
-                    transfer > 0 && `⚠️ 移乗が必要 ${transfer}名`,
-                    noChair > 0 && `⚠️ 椅子の用意 ${noChair}名`,
-                  ].filter(Boolean).join(' ')
                   return (
-                    <Box key={table.id} title={`テーブル${table.tableNo}`} right={`${members.length}/${table.capacity}名`}>
-                      <p className="text-[10px] text-gray-600 mb-1">
-                        定員{table.capacity}{table.wheelchairSlots > 0 && `・♿枠${table.wheelchairSlots}`}
-                        {warn && <b className="ml-1 text-black">{warn}</b>}
-                      </p>
-                      <NameList persons={members} />
-                    </Box>
+                    <LunchTableCard
+                      key={table.id}
+                      tableNo={table.tableNo}
+                      capacity={table.capacity}
+                      wheelchairSlots={table.wheelchairSlots}
+                      members={pick(tableSeats.map(a => a.personId))}
+                      // 車椅子の方が普通の席（移乗が必要）／車椅子以外の方が車椅子枠（椅子が必要）
+                      transfer={tableSeats.filter(a => a.seatIndex >= table.wheelchairSlots && byId.get(a.personId)?.isWheelchair).length}
+                      noChair={tableSeats.filter(a => a.seatIndex < table.wheelchairSlots && !byId.get(a.personId)?.isWheelchair).length}
+                    />
                   )
                 })}
               </div>
@@ -496,6 +492,43 @@ function BanquetTable({ label, seats }: { label: string; seats: { seatId: string
       {row(top)}
       <div className="my-1 h-2 rounded-sm bg-amber-700/40" aria-hidden />
       {bottom.length > 0 && row(bottom)}
+    </div>
+  )
+}
+
+// 昼食の1テーブル（印刷用）。ヘッダーにテーブル番号・定員と車椅子枠・警告、本文は座っている人の名前だけ
+function LunchTableCard({ tableNo, capacity, wheelchairSlots, members, transfer, noChair }: {
+  tableNo: number
+  capacity: number
+  wheelchairSlots: number
+  members: P[]
+  transfer: number
+  noChair: number
+}) {
+  return (
+    <div className="break-inside-avoid print-avoid-break rounded-md border border-gray-400 overflow-hidden bg-white">
+      <div className="bg-gray-100 border-b border-gray-400 px-2 py-1.5">
+        <div className="flex items-baseline justify-between gap-1">
+          <span className="text-[13px] font-bold">テーブル{tableNo}</span>
+          <span className="text-[11px] font-bold">{members.length}/{capacity}名</span>
+        </div>
+        <div className="text-[10px] text-gray-600">
+          定員{capacity}名{wheelchairSlots > 0 ? `・♿ 車椅子枠${wheelchairSlots}` : ''}
+        </div>
+        {transfer > 0 && <div className="mt-0.5 rounded bg-orange-100 px-1 text-[10px] font-bold text-orange-800">⚠️ 椅子への移乗が必要 {transfer}名</div>}
+        {noChair > 0 && <div className="mt-0.5 rounded bg-orange-100 px-1 text-[10px] font-bold text-orange-800">⚠️ 車椅子枠に椅子の用意 {noChair}名</div>}
+      </div>
+      {members.length === 0 ? (
+        <p className="px-2 py-1.5 text-[10px] text-gray-400">（未配置）</p>
+      ) : (
+        <ul className={`grid gap-1 p-1.5 ${members.length > 6 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {members.map(p => (
+            <li key={p.id} className={`break-words [word-break:keep-all] leading-snug rounded border px-1.5 py-0.5 text-[11px] ${personColor(p)}`}>
+              {personLabel(p)}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
