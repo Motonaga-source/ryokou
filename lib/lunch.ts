@@ -1,10 +1,10 @@
 // 昼食会場（2日目 伊賀の里もくもく手づくりファーム）の席次の定義（API・画面・シードで共通）
 
-// テーブル定義（全52席・車椅子枠15）。お店の配置図どおり、奥の列は左から 9・8・7・6、手前の列は 16・17〜20・21
+// テーブル定義（全52席・車椅子枠13）。お店の配置図どおり、奥の列は左から 9・8・7・6、手前の列は 16・17〜20・21
 // 管理画面に設定欄はないため、変更したらこの定義を直して npm run db:seed-lunch-tables で DB に反映する
 export const DEFAULT_LUNCH_TABLES = [
-  { tableNo: 9, capacity: 4, wheelchairSlots: 1, layoutRow: 0, layoutOrder: 0 },
-  { tableNo: 8, capacity: 4, wheelchairSlots: 1, layoutRow: 0, layoutOrder: 1 },
+  { tableNo: 9, capacity: 4, wheelchairSlots: 0, layoutRow: 0, layoutOrder: 0 },
+  { tableNo: 8, capacity: 4, wheelchairSlots: 0, layoutRow: 0, layoutOrder: 1 },
   { tableNo: 7, capacity: 4, wheelchairSlots: 2, layoutRow: 0, layoutOrder: 2 },
   { tableNo: 6, capacity: 4, wheelchairSlots: 2, layoutRow: 0, layoutOrder: 3 },
   { tableNo: 16, capacity: 4, wheelchairSlots: 2, layoutRow: 1, layoutOrder: 0 },
