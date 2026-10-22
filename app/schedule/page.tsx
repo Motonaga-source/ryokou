@@ -72,7 +72,7 @@ export default function SchedulePage() {
             {daySchedules.map((s) => {
               const important = isImportant(s)
               return (
-                <div key={s.id} className="flex gap-4 relative">
+                <div key={s.id} className="flex gap-4 relative break-inside-avoid">
                   {/* 時刻 */}
                   <div className="w-14 shrink-0 text-right pt-3 md:w-20">
                     <span className={`text-xs font-bold leading-tight ${important ? 'text-red-600' : 'text-gray-500'}`}>

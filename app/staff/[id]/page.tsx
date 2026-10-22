@@ -338,7 +338,7 @@ function Card({ icon, title, href, linkLabel = '全体を見る', children }: {
   children: ReactNode
 }) {
   return (
-    <section className="bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
+    <section className="break-inside-avoid bg-white rounded-2xl border-2 border-gray-200 shadow-sm overflow-hidden">
       <div className="px-4 py-2.5 bg-gray-50 border-b-2 border-gray-100 flex items-center justify-between gap-2">
         <h2 className="min-w-0 font-bold text-gray-800">{icon} {title}</h2>
         {href && (

@@ -12,6 +12,11 @@
     print-color-adjust: exact !important;
   }
 
+  /* 影は紙では不要。次のページへ送られたカードの影が前のページの下端に線として残るのを防ぐ */
+  *, *::before, *::after {
+    box-shadow: none !important;
+  }
+
   /* 画面操作用のボタン・入力フォームは印刷しない（表示に必要なタブ等は .print-keep で残す） */
   main button:not(.print-keep),
   main form:not(.print-keep) {
@@ -30,10 +35,27 @@
     min-height: auto !important;
   }
 
+  /* カード・枠・表の行・リストの項目は、ページの途中で真っ二つに分けない */
   .group,
-  .print-avoid-break {
+  .print-avoid-break,
+  .break-inside-avoid,
+  tr,
+  li {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+  }
+
+  /* 見出しだけがページの最下部に取り残されないようにする */
+  h1,
+  h2,
+  h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* 表がページをまたぐときは、次のページにも見出し行を出す */
+  thead {
+    display: table-header-group;
   }
 }
 

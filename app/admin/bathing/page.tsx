@@ -231,7 +231,7 @@ function DroppableGroup({ group, persons, onBanChange }: {
       {/* 担当スタッフ → 利用者（1班 → 2班 → 3班 → 班未設定）の順に見出しで区切る */}
       <div className="min-h-[140px] p-3 flex flex-col gap-2.5">
         {sectionsByBan(persons).map(sec => (
-          <div key={sec.key} className="flex flex-col gap-1.5">
+          <div key={sec.key} className="break-inside-avoid flex flex-col gap-1.5">
             <BanSectionLabel sectionKey={sec.key} label={sec.label} count={sec.persons.length} />
             {sec.persons.map(p => (
               <DraggablePerson key={p.id} person={p} onBanChange={ban => onBanChange(p.id, ban)} />

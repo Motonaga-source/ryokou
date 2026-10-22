@@ -149,7 +149,7 @@ export default function AdminPocketMoneyPage() {
             const isEditing = editingId === record.id
             const rate = record.allocated ? Math.round((record.used / record.allocated) * 100) : 0
             return (
-              <div key={record.id} className={`rounded-2xl border-2 shadow-sm p-4 ${corporate ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200'}`}>
+              <div key={record.id} className={`break-inside-avoid rounded-2xl border-2 shadow-sm p-4 ${corporate ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200'}`}>
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-xl">{record.person.gender === '女' ? '👩' : '👨'}</span>

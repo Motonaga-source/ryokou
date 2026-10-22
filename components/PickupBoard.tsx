@@ -243,7 +243,7 @@ function AreaSection({ title, time, total, children }: {
   children: ReactNode
 }) {
   return (
-    <section className="rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
+    <section className="break-inside-avoid rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="px-4 py-3 bg-slate-700 text-white flex flex-wrap items-center gap-x-3 gap-y-1">
         <h2 className="font-bold">{title}</h2>
         {time && <span className="text-xs font-bold bg-white/20 rounded-full px-2 py-0.5">🕗 {time}</span>}

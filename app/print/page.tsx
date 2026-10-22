@@ -292,7 +292,7 @@ export default async function PrintPage() {
               >
                 <div className="space-y-1.5">
                   {sectionsByBan(sorted).map(sec => (
-                    <div key={sec.key} className="space-y-0.5">
+                    <div key={sec.key} className="break-inside-avoid space-y-0.5">
                       <BanSectionLabel sectionKey={sec.key} label={sec.label} count={sec.persons.length} />
                       {/* 人数が多い見出しは2列にして、入浴管理が A4 1枚に収まるようにする */}
                       <NameList persons={sec.persons} columns={sec.persons.length > 4 ? 2 : 1} />
@@ -405,7 +405,7 @@ function Box({ title, right, className = '', children }: {
   children: ReactNode
 }) {
   return (
-    <div className={`border border-gray-500 print-avoid-break ${className}`}>
+    <div className={`break-inside-avoid border border-gray-500 print-avoid-break ${className}`}>
       <div className="flex justify-between gap-1 bg-gray-100 border-b border-gray-500 px-2 py-1 font-bold text-[11px]">
         <span className="min-w-0">{title}</span>
         {right && <span className="shrink-0">{right}</span>}
