@@ -12,7 +12,7 @@ import {
 } from '@/lib/supplies'
 
 async function loadSupplies(): Promise<SuppliesResponse> {
-  const res = await fetch('/api/supplies?tripId=1')
+  const res = await fetch('/api/supplies')
   return res.json()
 }
 
@@ -50,7 +50,7 @@ export default function SupplyList({ admin = false }: { admin?: boolean }) {
   }
 
   const addItem = async (category: SupplyCategory, itemName: string) => {
-    const ok = await send('/api/supplies', 'POST', { tripId: 1, category, itemName })
+    const ok = await send('/api/supplies', 'POST', { category, itemName })
     if (ok) await refresh()
     return ok
   }

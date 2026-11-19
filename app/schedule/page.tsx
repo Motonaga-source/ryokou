@@ -1,5 +1,6 @@
 'use client'
 
+import { useEventDays } from '@/lib/useCurrentEvent'
 import { useEffect, useState } from 'react'
 
 interface Schedule {
@@ -13,14 +14,14 @@ interface Schedule {
 }
 
 const DAY_COLORS = ['', 'from-blue-500 to-blue-700', 'from-green-500 to-green-700']
-const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 
 async function loadSchedules(): Promise<Schedule[]> {
-  const res = await fetch('/api/schedule?tripId=1')
+  const res = await fetch('/api/schedule')
   return res.json()
 }
 
 export default function SchedulePage() {
+  const { days, dayName } = useEventDays()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
   const [activeDay, setActiveDay] = useState(1)
@@ -46,17 +47,17 @@ export default function SchedulePage() {
 
       {/* 日付切替 */}
       <div className="flex gap-2">
-        {[1, 2].map((day) => (
+        {days.map((day) => (
           <button
             key={day}
             onClick={() => setActiveDay(day)}
             className={`flex-1 py-3 rounded-2xl font-semibold text-sm transition-all ${activeDay === day ? 'print-keep' : ''} ${
               activeDay === day
-                ? `bg-gradient-to-r ${DAY_COLORS[day]} text-white shadow-lg`
+                ? `bg-gradient-to-r ${DAY_COLORS[(day - 1) % 2 + 1]} text-white shadow-lg`
                 : 'bg-white border-2 border-gray-200 text-gray-600'
             }`}
           >
-            {DAY_NAMES[day]}
+            {dayName(day)}
           </button>
         ))}
       </div>

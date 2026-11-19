@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
 
   const teams = await prisma.team.findMany({
     where: { tripId },
@@ -20,11 +20,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = await request.json()
-  const { tripId, name, color } = body
+  const { name, color } = body
+  const tripId = await resolveTripId(request)
 
   const team = await prisma.team.create({
     data: {
-      tripId: tripId || 1,
+      tripId,
       name,
       color: color || null,
     }

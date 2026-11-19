@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useMenuItems } from '@/lib/useMenuOrder'
 import { PRINT_PATH } from '@/lib/menu'
+import EventSwitcher from '@/components/EventSwitcher'
 
 
 export default function Sidebar() {
@@ -48,8 +49,7 @@ export default function Sidebar() {
         <div className="px-6 py-6 border-b border-blue-600">
           <div className="text-2xl mb-1">✈️</div>
           <h1 className="text-lg font-bold leading-tight">旅行管理システム</h1>
-          <p className="text-blue-300 text-xs mt-1">滋賀１泊旅行</p>
-          <p className="text-blue-300 text-xs">10/29 〜 10/30</p>
+          <EventSwitcher tone="blue" />
         </div>
 
         {/* ナビゲーション */}
@@ -95,7 +95,7 @@ export default function Sidebar() {
             <span>🖨️</span> 画面を印刷
           </button>
           <a
-            href="/api/export/excel?tripId=1"
+            href="/api/export/excel"
             className="w-full flex items-center gap-2 justify-center px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm font-medium transition-colors text-white"
           >
             <span>📊</span> Excel出力

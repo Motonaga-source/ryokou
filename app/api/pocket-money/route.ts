@@ -3,13 +3,13 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { isCorporateAllowance } from '@/lib/allowance'
+import { resolveTripId } from '@/lib/event'
 
 // GET /api/pocket-money?tripId=1  参加する利用者の小遣い（支給額・使用額・残額）と管理区分
 // 支給額は利用者ごとに個別に設定する。未設定の人は allocated が null（一律の初期値は使わない）
 // 合計は、法人がお金を預かる人（自己管理以外）で支給額が設定済みの人だけを対象にする
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
 
   const persons = await prisma.person.findMany({
     where: {

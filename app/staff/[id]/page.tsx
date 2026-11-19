@@ -10,9 +10,9 @@ import { FAMILY_GROUP, OTHER_LOCATION, PICKUP_LOCATIONS, vehicleIdOf, walkGroupI
 import FishNGBadge from '@/components/FishNGBadge'
 import BanSectionLabel from '@/components/BanSectionLabel'
 import ChangePersonButton from './ChangePersonButton'
+import { getCurrentEvent } from '@/lib/event'
+import { dayShortLabel } from '@/lib/event-shared'
 
-const TRIP_ID = 1
-const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 // バスで隣に座る席（最後列 12 は A〜E が横一列）
 const BUS_NEIGHBORS: Record<string, string[]> = { A: ['B'], B: ['A'], C: ['D'], D: ['C'] }
 const BACK_ROW_SIDES = ['A', 'B', 'C', 'D', 'E']
@@ -32,6 +32,9 @@ interface P {
 export default async function StaffRolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const personId = parseInt(id)
+  const event = await getCurrentEvent()
+  if (!event) return <p className="p-8">イベントが登録されていません。</p>
+  const TRIP_ID = event.id
 
   const persons = await prisma.person.findMany({
     where: { participations: { some: { tripId: TRIP_ID, status: '参加' } } },
@@ -45,7 +48,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
       <div className="max-w-md mx-auto space-y-4 pt-12 lg:pt-0">
         <h1 className="text-2xl font-bold text-gray-800">👤 自分の担当</h1>
         <p className="text-sm text-gray-600 bg-white border-2 border-gray-200 rounded-2xl p-4">
-          この参加者は見つからないか、今回の旅行に「参加」になっていません。名前を選び直してください。
+          この参加者は見つからないか、今回のイベントに「参加」になっていません。名前を選び直してください。
         </p>
         <ChangePersonButton />
       </div>
@@ -55,7 +58,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
   const [pickup, vehicles, busSeat, carAssignments, roomAssignments, teamMemberships, bathing, banquetSeat, schedules, lunchSeat] =
     await Promise.all([
       prisma.pickupAssignment.findUnique({ where: { tripId_personId: { tripId: TRIP_ID, personId } } }),
-      prisma.pickupVehicle.findMany(),
+      prisma.pickupVehicle.findMany({ where: { tripId: TRIP_ID } }),
       prisma.busSeatAssignment.findUnique({ where: { tripId_personId: { tripId: TRIP_ID, personId } } }),
       prisma.carAssignment.findMany({
         where: { personId, car: { tripId: TRIP_ID } },
@@ -312,7 +315,7 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
             {mySchedules.map(s => (
               <li key={s.id} className="py-2 flex gap-3">
                 <div className="shrink-0 w-20 text-xs text-gray-500">
-                  <div>{DAY_NAMES[s.dayNo]?.slice(0, 3)}</div>
+                  <div>{dayShortLabel(event, s.dayNo)}</div>
                   <div className="text-sm font-bold text-gray-800">{s.timeLabel}</div>
                 </div>
                 <div className="min-w-0">

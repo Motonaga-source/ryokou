@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { MAX_ALLOWANCE_YEN, isCorporateAllowance } from '@/lib/allowance'
+import { resolveTripId } from '@/lib/event'
 
 const isYen = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0 && (v as number) <= MAX_ALLOWANCE_YEN
 
@@ -17,7 +18,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ pers
   const { personId } = await params
   const id = parseInt(personId)
   const body = await request.json()
-  const tripId = Number(body.tripId) || 1
+  const tripId = await resolveTripId(request)
 
   if (!isYen(body.allocated)) {
     return NextResponse.json({ error: `支給額は0〜${MAX_ALLOWANCE_YEN.toLocaleString()}円の整数で入力してください` }, { status: 400 })

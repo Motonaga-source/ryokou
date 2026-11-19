@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
 
   const assignments = await prisma.busSeatAssignment.findMany({
     where: { tripId },
@@ -28,7 +28,7 @@ export async function PUT(request: Request) {
   const body = await request.json()
   // body: { tripId, personId, vehicle, rowNo, seatSide, seatType }
   
-  const tripId = body.tripId || 1
+  const tripId = await resolveTripId(request)
 
   const assignment = await prisma.busSeatAssignment.upsert({
     where: {
@@ -64,7 +64,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url)
   const personId = parseInt(searchParams.get('personId') || '0')
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
   
   await prisma.busSeatAssignment.deleteMany({
     where: { tripId, personId }

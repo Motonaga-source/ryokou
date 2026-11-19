@@ -38,7 +38,7 @@ const labelOf = (key: string | null) =>
 const yen = (n: number) => `¥${n.toLocaleString()}`
 
 async function loadData(): Promise<PocketMoneyData> {
-  const res = await fetch('/api/pocket-money?tripId=1')
+  const res = await fetch('/api/pocket-money')
   if (!res.ok) throw new Error('データ取得に失敗しました')
   return res.json()
 }

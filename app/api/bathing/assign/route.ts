@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { isBathingRole, isBanNumber } from '@/lib/bathing'
+import { resolveTripId } from '@/lib/event'
 
 // PUT /api/bathing/assign
 // body: { tripId?: number, personId: number, role?: BathingRole | null, banNumber?: 1 | 2 | 3 | null }
@@ -17,7 +18,7 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json()
-  const tripId = Number(body.tripId) || 1
+  const tripId = await resolveTripId(request)
   const personId = Number(body.personId)
   const role = body.role ?? null
 

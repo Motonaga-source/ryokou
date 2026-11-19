@@ -30,8 +30,8 @@ import {
 
 async function loadBoard() {
   const [resA, resP] = await Promise.all([
-    fetch('/api/bathing?tripId=1'),
-    fetch('/api/persons?tripId=1'),
+    fetch('/api/bathing'),
+    fetch('/api/persons'),
   ])
   const persons: BathingPerson[] = await resP.json()
   return buildBathingBoard(persons, await resA.json())
@@ -87,7 +87,7 @@ export default function AdminBathingPage() {
     const res = await fetch('/api/bathing/assign', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tripId: 1, personId, role }),
+      body: JSON.stringify({ personId, role }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
@@ -113,7 +113,7 @@ export default function AdminBathingPage() {
     const res = await fetch('/api/bathing/assign', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tripId: 1, personId, banNumber }),
+      body: JSON.stringify({ personId, banNumber }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))

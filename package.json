@@ -11,7 +11,8 @@
     "db:update-schedule": "ts-node scripts/update-schedule.ts",
     "db:update-supplies": "ts-node scripts/update-supplies.ts",
     "db:reset-pickup-vehicles": "ts-node scripts/reset-pickup-vehicles.ts",
-    "db:seed-lunch-tables": "ts-node scripts/seed-lunch-tables.ts"
+    "db:seed-lunch-tables": "ts-node scripts/seed-lunch-tables.ts",
+    "dev-db": "node scripts/with-env.cjs .env.dev"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

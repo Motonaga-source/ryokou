@@ -19,8 +19,8 @@ export default function BathingPage() {
   useEffect(() => {
     (async () => {
       const [resA, resP] = await Promise.all([
-        fetch('/api/bathing?tripId=1'),
-        fetch('/api/persons?tripId=1'),
+        fetch('/api/bathing'),
+        fetch('/api/persons'),
       ])
       const board = buildBathingBoard(await resP.json(), await resA.json())
       setGroups(board.groups)

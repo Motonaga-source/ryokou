@@ -27,7 +27,7 @@ interface PocketMoneyData {
 const yen = (n: number) => `¥${n.toLocaleString()}`
 
 async function loadData(): Promise<PocketMoneyData> {
-  const res = await fetch('/api/pocket-money?tripId=1')
+  const res = await fetch('/api/pocket-money')
   if (!res.ok) throw new Error('データ取得に失敗しました')
   return res.json()
 }
@@ -80,7 +80,7 @@ export default function AdminPocketMoneyPage() {
     const res = await fetch(`/api/pocket-money/person/${record.person.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tripId: 1, allocated, used }),
+      body: JSON.stringify({ allocated, used }),
     })
     setSaving(false)
     if (!res.ok) {

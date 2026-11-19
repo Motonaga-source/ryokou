@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 
 // GET /api/persons/[id]
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -37,18 +38,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     },
   })
 
-  // 参加ステータスの更新があれば処理（tripId=1固定とする）
+  // 参加ステータスの更新があれば、選択中のイベントの参加状況として保存する
   if (body.status) {
+    const tripId = await resolveTripId(request)
     await prisma.tripParticipation.upsert({
       where: {
         tripId_personId: {
-          tripId: 1,
+          tripId,
           personId: parseInt(id)
         }
       },
       update: { status: body.status },
       create: {
-        tripId: 1,
+        tripId,
         personId: parseInt(id),
         status: body.status
       }

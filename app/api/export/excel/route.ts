@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import * as XLSX from 'xlsx'
+import { resolveTripId } from '@/lib/event'
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const tripId = parseInt(searchParams.get('tripId') || '1')
+      const tripId = await resolveTripId(request)
 
     // Fetch all data
     const persons = await prisma.person.findMany({

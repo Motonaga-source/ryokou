@@ -66,7 +66,7 @@ export default function VitalsPage() {
 
   const fetchVitals = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/vitals?tripId=1')
+    const res = await fetch('/api/vitals')
     const data = await res.json()
     setRooms(data)
     setLoading(false)

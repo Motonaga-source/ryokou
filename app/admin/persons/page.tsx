@@ -40,7 +40,7 @@ export default function PersonsPage() {
   const fetchPersons = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/persons?role=${filter.role}&tripId=1`)
+      const res = await fetch(`/api/persons?role=${filter.role}`)
       if (!res.ok) throw new Error('データ取得に失敗しました')
       const data = await res.json()
       setPersons(data)

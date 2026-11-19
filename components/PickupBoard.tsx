@@ -35,8 +35,8 @@ interface PickupPerson extends CardPerson {
 
 async function loadBoard() {
   const [resA, resP] = await Promise.all([
-    fetch('/api/pickup?tripId=1'),
-    fetch('/api/persons?tripId=1'),
+    fetch('/api/pickup'),
+    fetch('/api/persons'),
   ])
   const pickup: PickupResponse = await resA.json()
   const persons: PickupPerson[] = await resP.json()
@@ -100,7 +100,7 @@ export default function PickupBoard({ editable = false }: { editable?: boolean }
       ...(groupId ? [{ personId, groupId }] : []),
     ])
 
-    setError(await request('/api/pickup/assign', 'PUT', { tripId: 1, personId, groupId }))
+    setError(await request('/api/pickup/assign', 'PUT', { personId, groupId }))
     applyBoard(await loadBoard())
   }
 

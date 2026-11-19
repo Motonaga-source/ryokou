@@ -11,7 +11,8 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ===== 旅行イベント =====
+// ===== イベント（旅行・焼肉など。旧来の名前のまま Trip を使う） =====
+// 画面で選んでいるイベントは Cookie "event-id" に保存する（lib/event.ts）
 model Trip {
   id          Int      @id @default(autoincrement())
   name        String
@@ -21,6 +22,8 @@ model Trip {
   notes       String?
   travelFee   Int?
   pocketMoney Int?
+  status      String   @default("ACTIVE") // "ACTIVE"（開催予定・開催中）| "CLOSED"（終了。閲覧専用）
+  sortOrder   Int      @default(0)        // イベント切り替えの並び順
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -37,6 +40,7 @@ model Trip {
   pocketMoneyRecords PocketMoneyRecord[]
   bathingAssignments BathingAssignment[]
   pickupAssignments  PickupAssignment[]
+  pickupVehicles     PickupVehicle[]
 }
 
 // ===== 人物（スタッフ・利用者共通） =====
@@ -222,9 +226,12 @@ model MenuOrder {
 // 送迎車。名称・定員・所属拠点は管理画面から追加・変更・削除できる
 model PickupVehicle {
   id       Int    @id @default(autoincrement())
+  tripId   Int?   // どのイベントの送迎車か（マルチイベント対応前の車は 1 = 滋賀1泊旅行）
   name     String
   capacity Int
   location String // 所属: "yuzato" | "grace" | "uriwari-nishi" | "other"（lib/pickup.ts を参照）
+
+  trip Trip? @relation(fields: [tripId], references: [id], onDelete: Cascade)
 }
 
 model PickupAssignment {

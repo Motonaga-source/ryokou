@@ -11,7 +11,7 @@ export default function AllowanceRules() {
   const [savingId, setSavingId] = useState<number | null>(null)
 
   useEffect(() => {
-    fetch('/api/pocket-money/rules?tripId=1')
+    fetch('/api/pocket-money/rules')
       .then(async res => {
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '読み込みに失敗しました')
         return res.json()

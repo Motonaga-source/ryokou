@@ -49,7 +49,7 @@ export default function MedicationsPage() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/medications?tripId=1')
+      const res = await fetch('/api/medications')
       if (!res.ok) throw new Error('データ取得に失敗しました')
       const data = await res.json()
       setRecords(data)

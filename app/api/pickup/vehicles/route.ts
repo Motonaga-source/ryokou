@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 import { getSession } from '@/lib/auth'
 import { parseVehicleInput } from '@/lib/pickup'
 
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: input }, { status: 400 })
   }
 
-  const vehicle = await prisma.pickupVehicle.create({ data: input })
+  const tripId = await resolveTripId(request)
+  const vehicle = await prisma.pickupVehicle.create({ data: { ...input, tripId } })
   return NextResponse.json(vehicle)
 }

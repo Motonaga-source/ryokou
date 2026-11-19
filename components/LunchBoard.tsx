@@ -33,8 +33,8 @@ interface LunchPerson extends CardPerson {
 
 async function loadBoard() {
   const [resL, resP] = await Promise.all([
-    fetch('/api/lunch?tripId=1'),
-    fetch('/api/persons?tripId=1'),
+    fetch('/api/lunch'),
+    fetch('/api/persons'),
   ])
   const lunch: LunchResponse = await resL.json()
   const persons: LunchPerson[] = await resP.json()
@@ -93,7 +93,7 @@ export default function LunchBoard({ editable = false }: { editable?: boolean })
     const res = await fetch('/api/lunch/assign', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tripId: 1, personId, tableId: target?.tableId ?? null, seatIndex: target?.seatIndex }),
+      body: JSON.stringify({ personId, tableId: target?.tableId ?? null, seatIndex: target?.seatIndex }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))

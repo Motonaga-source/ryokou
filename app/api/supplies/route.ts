@@ -4,11 +4,11 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { isSupplyCategory, type SuppliesResponse } from '@/lib/supplies'
+import { resolveTripId } from '@/lib/event'
 
 // GET /api/supplies?tripId=1  持ち物と、車椅子利用者の車椅子の出所
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
 
   const [items, wheelchairs] = await Promise.all([
     prisma.supplyItem.findMany({
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const tripId = Number(body.tripId) || 1
+  const tripId = await resolveTripId(request)
   const itemName = typeof body.itemName === 'string' ? body.itemName.trim() : ''
   if (!itemName) {
     return NextResponse.json({ error: '品名を入力してください' }, { status: 400 })

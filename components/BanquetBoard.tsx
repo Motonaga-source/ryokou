@@ -27,8 +27,8 @@ import {
 
 async function loadBoard() {
   const [resA, resP] = await Promise.all([
-    fetch('/api/banquet?tripId=1'),
-    fetch('/api/persons?tripId=1'),
+    fetch('/api/banquet'),
+    fetch('/api/persons'),
   ])
   const persons: BanquetPerson[] = await resP.json()
   const assignments: BanquetAssignment[] = await resA.json()
@@ -81,7 +81,7 @@ export default function BanquetBoard({ editable = false }: { editable?: boolean 
     const res = await fetch('/api/banquet/assign', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tripId: 1, personId, seatId }),
+      body: JSON.stringify({ personId, seatId }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))

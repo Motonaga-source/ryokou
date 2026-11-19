@@ -2,12 +2,13 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 
 export async function PUT(request: Request) {
   const body = await request.json()
   // body: { tripId, personId, carId: number | null }
 
-  const tripId = body.tripId || 1
+  const tripId = await resolveTripId(request)
 
   // 既存の車の割り当てを解除
   await prisma.carAssignment.deleteMany({

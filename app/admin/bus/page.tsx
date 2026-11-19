@@ -66,8 +66,8 @@ export default function AdminBusDnDPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     const [busRes, carsRes] = await Promise.all([
-      fetch('/api/bus?tripId=1'),
-      fetch('/api/cars?tripId=1')
+      fetch('/api/bus'),
+      fetch('/api/cars')
     ])
     const busData = await busRes.json()
     const carsData = await carsRes.json()
@@ -163,7 +163,7 @@ export default function AdminBusDnDPage() {
     await fetch('/api/cars', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newCarName.trim(), capacity, tripId: 1 })
+      body: JSON.stringify({ name: newCarName.trim(), capacity })
     })
     await fetchData()
     setSaving(false)

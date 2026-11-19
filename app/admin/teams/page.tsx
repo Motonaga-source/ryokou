@@ -93,14 +93,14 @@ export default function AdminTeamsDnDPage() {
 
   const fetchTeams = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/teams?tripId=1')
+    const res = await fetch('/api/teams')
     const data = await res.json();
       data.forEach((t: any) => {
         t.members = sortTeamMembers(t.members);
       });
       setTeams(data);
 
-    const resP = await fetch('/api/persons?tripId=1')
+    const resP = await fetch('/api/persons')
     const persons: Person[] = await resP.json()
     const participatingPersons = persons.filter(p => p.participations?.[0]?.status === '参加')
     const assignedIds = new Set(data.flatMap((t: Team) => t.members.map((m: TeamMember) => m.person.id)))
@@ -197,7 +197,7 @@ export default function AdminTeamsDnDPage() {
       await fetch('/api/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...teamForm, tripId: 1 })
+        body: JSON.stringify({ ...teamForm })
       })
     }
     setSavingTeam(false)

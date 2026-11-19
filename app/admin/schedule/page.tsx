@@ -1,5 +1,6 @@
 'use client'
 
+import { useEventDays } from '@/lib/useCurrentEvent'
 import { useEffect, useState, useCallback, type ReactNode } from 'react'
 
 interface Schedule {
@@ -21,10 +22,9 @@ interface ScheduleForm {
 }
 
 const DAY_COLORS = ['', 'from-blue-500 to-blue-700', 'from-green-500 to-green-700']
-const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 
 async function loadSchedules(): Promise<Schedule[]> {
-  const res = await fetch('/api/schedule?tripId=1')
+  const res = await fetch('/api/schedule')
   return res.json()
 }
 
@@ -37,6 +37,7 @@ const toForm = (s: Schedule): ScheduleForm => ({
 })
 
 export default function AdminSchedulePage() {
+  const { days, dayName } = useEventDays()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [loading, setLoading] = useState(true)
   const [activeDay, setActiveDay] = useState(1)
@@ -80,7 +81,7 @@ export default function AdminSchedulePage() {
 
   const handleSave = async (form: ScheduleForm) => {
     const ok = editingId === 'new'
-      ? await request('/api/schedule', 'POST', { tripId: 1, ...form })
+      ? await request('/api/schedule', 'POST', { ...form })
       : await request(`/api/schedule/${editingId}`, 'PUT', form)
     if (!ok) return
     setEditingId(null)
@@ -116,17 +117,17 @@ export default function AdminSchedulePage() {
 
       {/* 日付切替 */}
       <div className="flex gap-2">
-        {[1, 2].map((day) => (
+        {days.map((day) => (
           <button
             key={day}
             onClick={() => { setActiveDay(day); setEditingId(null) }}
             className={`flex-1 py-3 rounded-2xl font-semibold text-sm transition-all ${activeDay === day ? 'print-keep' : ''} ${
               activeDay === day
-                ? `bg-gradient-to-r ${DAY_COLORS[day]} text-white shadow-lg`
+                ? `bg-gradient-to-r ${DAY_COLORS[(day - 1) % 2 + 1]} text-white shadow-lg`
                 : 'bg-white border-2 border-gray-200 text-gray-600'
             }`}
           >
-            {DAY_NAMES[day]}
+            {dayName(day)}
           </button>
         ))}
       </div>
@@ -219,7 +220,7 @@ export default function AdminSchedulePage() {
                 onClick={() => setEditingId('new')}
                 className="w-full py-3 rounded-2xl border-2 border-dashed border-blue-300 text-blue-600 font-semibold text-sm bg-white hover:bg-blue-50 transition-colors"
               >
-                ＋ {DAY_NAMES[activeDay]}に予定を追加
+                ＋ {dayName(activeDay)}に予定を追加
               </button>
             )}
           </div>
@@ -255,6 +256,7 @@ function ScheduleEditor({ initial, saving, onSave, onCancel }: {
   onSave: (form: ScheduleForm) => void
   onCancel: () => void
 }) {
+  const { days, dayName } = useEventDays()
   const [form, setForm] = useState(initial)
   const set = <K extends keyof ScheduleForm>(key: K, value: ScheduleForm[K]) => setForm(f => ({ ...f, [key]: value }))
   const inputClass = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400'
@@ -268,7 +270,7 @@ function ScheduleEditor({ initial, saving, onSave, onCancel }: {
         <label className="block">
           <span className="text-xs font-semibold text-gray-600">日付</span>
           <select className={inputClass} value={form.dayNo} onChange={e => set('dayNo', Number(e.target.value))}>
-            {[1, 2].map(d => <option key={d} value={d}>{DAY_NAMES[d]}</option>)}
+            {days.map(d => <option key={d} value={d}>{dayName(d)}</option>)}
           </select>
         </label>
         <label className="block">

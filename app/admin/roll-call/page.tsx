@@ -52,7 +52,7 @@ const GROUP_MODES: { value: GroupMode; label: string }[] = [
 ]
 
 async function loadRollCall(): Promise<RollCallData> {
-  const res = await fetch('/api/roll-call?tripId=1')
+  const res = await fetch('/api/roll-call')
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || '読み込みに失敗しました')
   return res.json()
 }
@@ -188,7 +188,7 @@ export default function RollCallPage() {
   const clearAll = async () => {
     if (!confirm('全員のチェックをクリアします。よろしいですか？')) return
     setClearing(true)
-    const res = await fetch('/api/roll-call?tripId=1', { method: 'DELETE' })
+    const res = await fetch('/api/roll-call', { method: 'DELETE' })
     setClearing(false)
     if (!res.ok) {
       setError((await res.json().catch(() => ({}))).error || 'クリアに失敗しました')

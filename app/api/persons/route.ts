@@ -2,12 +2,13 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 
 // GET /api/persons
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const role = searchParams.get('role')
-  const tripId = searchParams.get('tripId')
+  const tripId = await resolveTripId(request)
 
   const persons = await prisma.person.findMany({
     where: {
@@ -15,9 +16,7 @@ export async function GET(request: Request) {
     },
     include: {
       medication: true,
-      participations: tripId
-        ? { where: { tripId: parseInt(tripId) } }
-        : true,
+      participations: { where: { tripId } }, // 選択中のイベントの参加状況だけ
       roomAssignments: {
         include: { room: true },
       },
@@ -34,7 +33,8 @@ export async function GET(request: Request) {
 // POST /api/persons
 export async function POST(request: Request) {
   const body = await request.json()
-  const { status, tripId, ...personData } = body
+  const { status, ...personData } = body
+  const tripId = await resolveTripId(request)
   
   const person = await prisma.person.create({ 
     data: {
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   await prisma.tripParticipation.create({
     data: {
       personId: person.id,
-      tripId: tripId || 1,
+      tripId,
       status: initialStatus
     }
   })

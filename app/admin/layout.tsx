@@ -5,12 +5,15 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { MENU_ORDER_ADMIN_ITEM, ROLL_CALL_ADMIN_ITEM } from '@/lib/menu'
 import { useMenuItems } from '@/lib/useMenuOrder'
+import { useCurrentEvent } from '@/lib/useCurrentEvent'
+import EventSwitcher from '@/components/EventSwitcher'
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const { event, readOnly } = useCurrentEvent()
   // 並び替え可能なメニュー + 末尾に「点呼チェック」「メニュー並び替え」を固定
   const navItems = [
     ...useMenuItems().map(m => ({ href: m.adminPath, label: m.adminLabel, icon: m.adminIcon ?? m.icon })),
@@ -55,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="px-6 py-6 border-b border-slate-700">
           <div className="text-2xl mb-1">🔐</div>
           <h1 className="text-lg font-bold leading-tight">管理画面</h1>
-          <p className="text-slate-400 text-xs mt-1">滋賀１泊旅行</p>
+          <EventSwitcher tone="slate" />
         </div>
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
@@ -99,7 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span>🖨️</span> 画面を印刷
           </button>
           <a
-            href="/api/export/excel?tripId=1"
+            href="/api/export/excel"
             className="w-full flex items-center gap-2 justify-center px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-medium transition-colors text-white"
           >
             <span>📊</span> Excel出力
@@ -118,6 +121,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <main className="flex-1 min-w-0 min-h-screen print:ml-0 print:bg-white print:h-auto">
         <div className="w-full mx-auto print:max-w-none print:p-0">
+          {readOnly && event && (
+            <div className="sticky top-0 z-30 print:hidden border-b border-amber-300 bg-amber-50 px-4 py-2 pl-16 lg:pl-4 text-sm text-amber-900">
+              🔒 「{event.name}」は終了したイベントのため<strong>閲覧専用</strong>です。変更しても保存されません。
+            </div>
+          )}
           {children}
         </div>
       </main>

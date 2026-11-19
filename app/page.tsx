@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/dashboard?tripId=1')
+    fetch('/api/dashboard')
       .then((r) => r.json())
       .then(setData)
       .catch(console.error)

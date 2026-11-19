@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { resolveTripId } from '@/lib/event'
 
 const unauthorized = () => NextResponse.json({ error: '管理者ログインが必要です' }, { status: 401 })
 
@@ -11,8 +12,7 @@ export async function GET(request: Request) {
   const session = await getSession()
   if (!session?.isAdmin) return unauthorized()
 
-  const { searchParams } = new URL(request.url)
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
 
   const [persons, vehicles, pickups, teams, busSeats, cars] = await Promise.all([
     prisma.person.findMany({
@@ -20,7 +20,11 @@ export async function GET(request: Request) {
       select: { id: true, name: true, role: true, gender: true, isWheelchair: true, isFishNG: true, isRollCalled: true },
       orderBy: { id: 'asc' },
     }),
-    prisma.pickupVehicle.findMany({ orderBy: { id: 'asc' } }),
+    prisma.pickupVehicle.findMany({
+      where: { tripId },
+      select: { id: true, name: true, capacity: true, location: true },
+      orderBy: { id: 'asc' },
+    }),
     prisma.pickupAssignment.findMany({ where: { tripId }, select: { personId: true, groupId: true } }),
     prisma.team.findMany({
       where: { tripId },
@@ -53,8 +57,7 @@ export async function DELETE(request: Request) {
   const session = await getSession()
   if (!session?.isAdmin) return unauthorized()
 
-  const { searchParams } = new URL(request.url)
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
 
   const { count } = await prisma.person.updateMany({
     where: { participations: { some: { tripId } }, isRollCalled: true },

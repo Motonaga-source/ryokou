@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
 
   const assignments = await prisma.bathingAssignment.findMany({
     where: { tripId },

@@ -12,11 +12,11 @@ import { SUPPLY_CATEGORIES, WHEELCHAIR_LOAN } from '@/lib/supplies'
 import { LunchFloorPlan } from '@/components/LunchFloorPlan'
 import BanSectionLabel from '@/components/BanSectionLabel'
 import PrintButton from './PrintButton'
+import { getCurrentEvent } from '@/lib/event'
+import { dayLabel, eventDays } from '@/lib/event-shared'
 
 export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理システム' }
 
-const TRIP_ID = 1
-const DAY_NAMES = ['', '1日目（10/29・木）', '2日目（10/30・金）']
 const BUS_ROWS = Array.from({ length: 12 }, (_, i) => 12 - i)
 
 // 部屋番号が数字だけのときだけ「号室」を付ける（"363トリプルベッド" のような名前はそのまま）
@@ -33,6 +33,10 @@ interface P {
 }
 
 export default async function PrintPage() {
+  const event = await getCurrentEvent()
+  if (!event) return <p className="p-8">イベントが登録されていません。</p>
+  const TRIP_ID = event.id
+  const days = eventDays(event)
   const [trip, persons, schedules, supplies, vehicles, pickups, busSeats, cars, rooms, teams, bathing, banquet, lunchTables, lunchSeats] =
     await Promise.all([
       prisma.trip.findUnique({ where: { id: TRIP_ID } }),
@@ -43,7 +47,7 @@ export default async function PrintPage() {
       }),
       prisma.schedule.findMany({ where: { tripId: TRIP_ID }, orderBy: [{ dayNo: 'asc' }, { sortOrder: 'asc' }] }),
       prisma.supplyItem.findMany({ where: { tripId: TRIP_ID }, orderBy: { id: 'asc' } }),
-      prisma.pickupVehicle.findMany({ orderBy: { id: 'asc' } }),
+      prisma.pickupVehicle.findMany({ where: { tripId: TRIP_ID }, orderBy: { id: 'asc' } }),
       prisma.pickupAssignment.findMany({ where: { tripId: TRIP_ID } }),
       prisma.busSeatAssignment.findMany({ where: { tripId: TRIP_ID, vehicle: '1号車' } }),
       prisma.car.findMany({ where: { tripId: TRIP_ID }, include: { assignments: true }, orderBy: { id: 'asc' } }),
@@ -85,12 +89,12 @@ export default async function PrintPage() {
 
       {/* ① スケジュール */}
       <Section title="① スケジュール">
-        {[1, 2].map(day => {
+        {days.map(day => {
           const list = schedules.filter(s => s.dayNo === day)
           return (
             // 1日目と2日目は別の用紙に分ける
-            <div key={day} className={day === 1 ? 'break-after-page' : ''}>
-              <SubHeading>{DAY_NAMES[day]}</SubHeading>
+            <div key={day} className={day < days.length ? 'break-after-page' : ''}>
+              <SubHeading>{dayLabel(event, day)}</SubHeading>
               <table className="w-full border-collapse text-[11px]">
                 <thead>
                   <tr className="bg-gray-100">

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { isValidSeatIndex, moveToLunchSeat } from '@/lib/lunch'
+import { resolveTripId } from '@/lib/event'
 
 // PUT /api/lunch/assign
 // body: { tripId?: number, personId: number, tableId: number | null, seatIndex?: number }
@@ -14,7 +15,7 @@ export async function PUT(request: Request) {
   }
 
   const body = await request.json()
-  const tripId = Number(body.tripId) || 1
+  const tripId = await resolveTripId(request)
   const personId = Number(body.personId)
   const tableId = body.tableId ?? null
 

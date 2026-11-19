@@ -24,7 +24,7 @@ export default function StaffSelectPage() {
       router.replace(`/staff/${saved}`)
       return
     }
-    fetch('/api/persons?tripId=1')
+    fetch('/api/persons')
       .then(res => res.json())
       .then((list: Person[]) => {
         setPersons(list.filter(p => p.participations?.[0]?.status === '参加'))

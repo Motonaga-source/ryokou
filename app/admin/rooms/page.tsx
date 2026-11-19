@@ -76,12 +76,12 @@ export default function AdminRoomsDnDPage() {
 
   const fetchRooms = useCallback(async () => {
     setLoading(true)
-    const res = await fetch('/api/rooms?tripId=1')
+    const res = await fetch('/api/rooms')
     const data = await res.json();
       data.forEach((r: any) => r.assignments = sortAssignments(r.assignments));
       setRooms(data);
 
-    const resP = await fetch('/api/persons?tripId=1')
+    const resP = await fetch('/api/persons')
     const persons: Person[] = await resP.json()
     const participatingPersons = persons.filter(p => p.participations?.[0]?.status === '参加')
     const assignedIds = new Set(data.flatMap((r: RoomWithUsers) => r.assignments.map(a => a.person.id)))
@@ -196,7 +196,7 @@ export default function AdminRoomsDnDPage() {
       await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...roomForm, tripId: 1 })
+        body: JSON.stringify({ ...roomForm })
       })
     }
     setSavingRoom(false)

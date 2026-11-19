@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import type { LunchResponse } from '@/lib/lunch'
+import { resolveTripId } from '@/lib/event'
 
 // GET /api/lunch?tripId=1  昼食会場のテーブルと割り当て一覧
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const tripId = parseInt(searchParams.get('tripId') || '1')
+  const tripId = await resolveTripId(request)
 
   const [tables, assignments] = await Promise.all([
     prisma.lunchTable.findMany({

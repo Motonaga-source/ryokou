@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 import { getSession } from '@/lib/auth'
 import { parseVehicleInput, vehicleGroupId } from '@/lib/pickup'
 
@@ -17,13 +18,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: input }, { status: 400 })
   }
 
-  const { count } = await prisma.pickupVehicle.updateMany({ where: { id: parseInt(id) }, data: input })
+  const tripId = await resolveTripId(request)
+  const { count } = await prisma.pickupVehicle.updateMany({ where: { id: parseInt(id), tripId }, data: input })
   if (count === 0) return NextResponse.json({ error: '送迎車が見つかりません' }, { status: 404 })
   return NextResponse.json({ success: true })
 }
 
 // DELETE /api/pickup/vehicles/:id  送迎車を削除（管理者のみ）。乗車予定だった人は未割り当てに戻る
-export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession()
   if (!session?.isAdmin) {
     return NextResponse.json({ error: '管理者ログインが必要です' }, { status: 401 })
@@ -31,9 +33,12 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
 
   const { id } = await params
   const vehicleId = parseInt(id)
+  const tripId = await resolveTripId(request)
+  const vehicle = await prisma.pickupVehicle.findFirst({ where: { id: vehicleId, tripId } })
+  if (!vehicle) return NextResponse.json({ error: '送迎車が見つかりません' }, { status: 404 })
   await prisma.$transaction([
-    prisma.pickupAssignment.deleteMany({ where: { groupId: vehicleGroupId(vehicleId) } }),
-    prisma.pickupVehicle.deleteMany({ where: { id: vehicleId } }),
+    prisma.pickupAssignment.deleteMany({ where: { tripId, groupId: vehicleGroupId(vehicleId) } }),
+    prisma.pickupVehicle.deleteMany({ where: { id: vehicleId, tripId } }),
   ])
   return NextResponse.json({ success: true })
 }
