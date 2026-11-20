@@ -4,18 +4,19 @@ import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { EVENT_COOKIE, type EventSummary } from '@/lib/event-shared'
 
-const toSummary = (t: { id: number; name: string; startDate: Date; endDate: Date; status: string }): EventSummary => ({
+const toSummary = (t: { id: number; name: string; startDate: Date; endDate: Date; status: string; modules: string[] }): EventSummary => ({
   id: t.id,
   name: t.name,
   startDate: t.startDate.toISOString(),
   endDate: t.endDate.toISOString(),
   status: t.status === 'CLOSED' ? 'CLOSED' : 'ACTIVE',
+  modules: t.modules,
 })
 
 // イベント一覧（開催予定 → 終了、それぞれ並び順・開催日順）
 export async function listEvents(): Promise<EventSummary[]> {
   const trips = await prisma.trip.findMany({
-    select: { id: true, name: true, startDate: true, endDate: true, status: true, sortOrder: true },
+    select: { id: true, name: true, startDate: true, endDate: true, status: true, sortOrder: true, modules: true },
     orderBy: [{ sortOrder: 'asc' }, { startDate: 'asc' }],
   })
   const active = trips.filter(t => t.status !== 'CLOSED')

@@ -2,25 +2,59 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { MENU_ORDER_ADMIN_ITEM, PARTICIPATION_ADMIN_ITEM, ROLL_CALL_ADMIN_ITEM } from '@/lib/menu'
+import { useEffect, useState } from 'react'
+import { EVENTS_ADMIN_ITEM, MENU_ORDER_ADMIN_ITEM, PARTICIPATION_ADMIN_ITEM, ROLL_CALL_ADMIN_ITEM } from '@/lib/menu'
 import { useMenuItems } from '@/lib/useMenuOrder'
-import { useCurrentEvent } from '@/lib/useCurrentEvent'
+import { useCurrentEvent, useModules } from '@/lib/useCurrentEvent'
 import EventSwitcher from '@/components/EventSwitcher'
 
+// 終了したイベント（閲覧専用）でも、そのまま開ける管理画面（編集操作がない、またはイベントに属さない画面）
+const READ_ONLY_OPEN_PATHS = ['/admin', EVENTS_ADMIN_ITEM.href, PARTICIPATION_ADMIN_ITEM.href, MENU_ORDER_ADMIN_ITEM.href]
+// 「表示だけする」を選んだイベント（タブを閉じるまで覚える）
+const VIEW_ONLY_KEY = 'readonly-view-event'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const { event, readOnly } = useCurrentEvent()
-  // 並び替え可能なメニュー + 末尾に「参加者の登録」「点呼チェック」「メニュー並び替え」を固定
+  const { menuEnabled, modules } = useModules()
+  // 並び替え可能なメニュー（選択中のイベントで ON の機能だけ）+ 末尾に管理者専用の項目を固定
   const navItems = [
-    ...useMenuItems().map(m => ({ href: m.adminPath, label: m.adminLabel, icon: m.adminIcon ?? m.icon })),
+    ...useMenuItems()
+      .filter(m => menuEnabled(m.path))
+      .map(m => ({ href: m.adminPath, label: m.adminLabel, icon: m.adminIcon ?? m.icon })),
     PARTICIPATION_ADMIN_ITEM,
-    ROLL_CALL_ADMIN_ITEM,
+    ...(modules.includes('roll-call') ? [ROLL_CALL_ADMIN_ITEM] : []),
+    EVENTS_ADMIN_ITEM,
     MENU_ORDER_ADMIN_ITEM,
   ]
+
+  // 閲覧専用のイベントでは、編集画面を開く前に確認を挟む（「表示だけする」を選ぶと開ける）
+  const [viewOnlyEventId, setViewOnlyEventId] = useState<string | null>(null)
+  useEffect(() => {
+    let value: string | null = null
+    try {
+      if (new URLSearchParams(window.location.search).get('view') === '1' && event) {
+        sessionStorage.setItem(VIEW_ONLY_KEY, String(event.id))
+      }
+      value = sessionStorage.getItem(VIEW_ONLY_KEY)
+    } catch {
+      value = null
+    }
+    queueMicrotask(() => setViewOnlyEventId(value))
+  }, [event])
+  const locked =
+    readOnly && !!event && !READ_ONLY_OPEN_PATHS.includes(pathname) && viewOnlyEventId !== String(event.id)
+  const viewOnly = () => {
+    if (!event) return
+    try {
+      sessionStorage.setItem(VIEW_ONLY_KEY, String(event.id))
+    } catch {
+      // 保存できなくても、この画面では表示する
+    }
+    setViewOnlyEventId(String(event.id))
+  }
 
   if (pathname === '/admin/login') {
     return <>{children}</>
@@ -124,12 +158,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="w-full mx-auto print:max-w-none print:p-0">
           {readOnly && event && (
             <div className="sticky top-0 z-30 print:hidden border-b border-amber-300 bg-amber-50 px-4 py-2 pl-16 lg:pl-4 text-sm text-amber-900">
-              🔒 「{event.name}」は終了したイベントのため<strong>閲覧専用</strong>です。変更しても保存されません。
+              🔒 「{event.name}」は終了したイベントのため<strong>閲覧専用</strong>です。変更はできません。
             </div>
           )}
-          {children}
+          {locked && event ? (
+            <ReadOnlyLock eventName={event.name} pathname={pathname} onViewOnly={viewOnly} />
+          ) : (
+            children
+          )}
         </div>
       </main>
+    </div>
+  )
+}
+
+// 終了したイベントの編集画面を開いたときの確認
+function ReadOnlyLock({ eventName, pathname, onViewOnly }: { eventName: string; pathname: string; onViewOnly: () => void }) {
+  const generalPath = pathname === '/admin/roll-call' ? null : pathname.replace('/admin', '') || '/'
+  return (
+    <div className="max-w-xl mx-auto pt-16 lg:pt-8">
+      <div className="rounded-2xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-3">
+        <h1 className="text-xl font-bold text-gray-800">🔒 終了したイベントの編集画面です</h1>
+        <p className="text-sm text-gray-600">
+          「{eventName}」は終了したため閲覧専用です。誤って変更しないよう、編集画面は閉じています。
+        </p>
+        <div className="flex flex-wrap gap-2 pt-2">
+          {generalPath && (
+            <Link href={generalPath} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500">
+              👁️ 一般画面で見る
+            </Link>
+          )}
+          <button onClick={onViewOnly} className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+            表示だけする（変更はできません）
+          </button>
+          <Link href="/admin/events" className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+            🗂️ イベント管理（再開はこちら）
+          </Link>
+        </div>
+      </div>
     </div>
   )
 }

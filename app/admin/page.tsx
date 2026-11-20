@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { isPathEnabled } from '@/lib/modules'
+import { eventDayCount } from '@/lib/event-shared'
 
 interface DashboardData {
   trip: {
@@ -9,9 +11,11 @@ interface DashboardData {
     destination: string
     startDate: string
     endDate: string
-    travelFee: number
-    pocketMoney: number
-  }
+    travelFee: number | null
+    pocketMoney: number | null
+    dashboardNotes: string | null
+    modules: string[]
+  } | null
   stats: {
     totalParticipants: number
     totalStaff: number
@@ -57,16 +61,24 @@ export default function DashboardPage() {
     ? Math.round((data.stats.vitalsDone / Math.max(data.stats.vitalsTotal, 1)) * 100)
     : 0
 
+  // 選択中のイベントで ON の機能だけを表示する
+  const modules = data?.trip?.modules ?? []
+  const on = (key: string) => modules.includes(key)
+  const links = quickLinks.filter(link => isPathEnabled(link.href, modules))
+  const showFee = data?.trip?.travelFee != null
+  const showPocketMoney = on('pocket-money') && data?.trip?.pocketMoney != null
+  const notes = (data?.trip?.dashboardNotes ?? '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+
   return (
     <div className="space-y-6">
       {/* ヘッダー */}
       <div className="pt-12 lg:pt-0">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-          ✈️ {data?.trip.name || '旅行管理システム'}
+          ✈️ {data?.trip?.name || '旅行管理システム'}
         </h1>
         <p className="text-gray-500 mt-1">
-          {data?.trip.destination} ／{' '}
-          {data
+          {data?.trip?.destination} ／{' '}
+          {data?.trip
             ? `${new Date(data.trip.startDate).toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })} 〜 ${new Date(data.trip.endDate).toLocaleDateString('ja-JP', { month: 'long', day: 'numeric' })}`
             : ''}
         </p>
@@ -95,16 +107,19 @@ export default function DashboardPage() {
           icon="👨‍💼"
           color="purple"
         />
-        <StatCard
-          label="客室数"
-          value={data?.stats.rooms ?? 0}
-          unit="室"
-          icon="🏨"
-          color="orange"
-        />
+        {on('rooms') && (
+          <StatCard
+            label="客室数"
+            value={data?.stats.rooms ?? 0}
+            unit="室"
+            icon="🏨"
+            color="orange"
+          />
+        )}
       </div>
 
       {/* バイタルチェック進捗 */}
+      {on('vitals') && (
       <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-gray-700 flex items-center gap-2">
@@ -129,28 +144,35 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* 旅費情報 */}
+      {/* 旅費情報（設定されている項目だけ） */}
+      {(showFee || showPocketMoney) && (
       <div className="grid grid-cols-2 gap-4">
+        {showFee && (
         <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-          <div className="text-gray-500 text-sm">旅費</div>
+          <div className="text-gray-500 text-sm">{data?.trip && eventDayCount(data.trip) === 1 ? '参加費' : '旅費'}</div>
           <div className="text-2xl font-bold text-gray-800 mt-1">
-            ¥{(data?.trip.travelFee ?? 0).toLocaleString()}
+            ¥{(data?.trip?.travelFee ?? 0).toLocaleString()}
           </div>
         </div>
+        )}
+        {showPocketMoney && (
         <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
           <div className="text-gray-500 text-sm">小遣い支給額</div>
           <div className="text-2xl font-bold text-gray-800 mt-1">
-            ¥{(data?.trip.pocketMoney ?? 0).toLocaleString()}
+            ¥{(data?.trip?.pocketMoney ?? 0).toLocaleString()}
           </div>
         </div>
+        )}
       </div>
+      )}
 
       {/* クイックアクセス */}
       <div>
         <h2 className="font-semibold text-gray-700 mb-3">🚀 クイックアクセス</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {quickLinks.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -168,18 +190,21 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 重要な注意事項 */}
+      {/* 重要な注意事項（イベントごとに「イベント管理」で設定。1行1項目、**太字**） */}
+      {notes.length > 0 && (
       <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5">
         <h2 className="font-bold text-amber-800 mb-3 flex items-center gap-2">
           ⚠️ 重要な注意事項
         </h2>
         <ul className="space-y-2 text-sm text-amber-700">
-          <li>🚫 <strong>アルコール提供NG</strong>：玉井様、仲様</li>
-          <li>💊 <strong>眠前薬注意</strong>：アルコールを飲まれる方の眠前薬は中止</li>
-          <li>🚢 <strong>船苦手な方</strong>：菅原様・山内様（松本さんが対応）</li>
-          <li>🏨 <strong>夜間外出禁止</strong>：ホテルの外に出るのは禁止</li>
+          {notes.map((line, i) => (
+            <li key={i}>
+              {line.split(/\*\*(.+?)\*\*/).map((part, j) => (j % 2 === 1 ? <strong key={j}>{part}</strong> : part))}
+            </li>
+          ))}
         </ul>
       </div>
+      )}
     </div>
   )
 }

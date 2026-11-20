@@ -3,6 +3,7 @@
 // 1ページ内で何度呼んでも /api/events の取得は1回だけ
 import { useEffect, useState } from 'react'
 import { dayLabel, eventDays, type EventsResponse } from '@/lib/event-shared'
+import { isMenuPathEnabled, isPathEnabled } from '@/lib/modules'
 
 let cache: Promise<EventsResponse> | null = null
 
@@ -53,5 +54,18 @@ export function useEventDays() {
   return {
     days: event ? eventDays(event) : [],
     dayName: (dayNo: number) => (event ? dayLabel(event, dayNo) : ''),
+  }
+}
+
+// 選択中のイベントで使う機能（読み込み前は loaded=false）
+export function useModules() {
+  const { event, loaded } = useCurrentEvent()
+  const modules = event?.modules ?? []
+  return {
+    loaded,
+    modules,
+    // メニュー（一般画面のパス）を表示するか。読み込み前は機能ごとのメニューを出さない
+    menuEnabled: (menuPath: string) => isMenuPathEnabled(menuPath, loaded ? modules : []),
+    pathEnabled: (pathname: string) => !loaded || !event || isPathEnabled(pathname, modules),
   }
 }

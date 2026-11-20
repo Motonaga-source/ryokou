@@ -2,12 +2,19 @@
 
 export const EVENT_COOKIE = 'event-id'
 
+// 終了したイベント（閲覧専用）を選んでいても書き込める API
+// （ログイン・イベントの切り替えと作成・編集・メニュー並び順は、どのイベントにも属さない全体の操作）
+export const READ_ONLY_ALLOWED_API = ['/api/site-auth', '/api/auth', '/api/events', '/api/menu-order']
+export const isReadOnlyAllowedApi = (path: string) =>
+  READ_ONLY_ALLOWED_API.some(p => path === p || path.startsWith(p + '/'))
+
 export interface EventSummary {
   id: number
   name: string
   startDate: string // ISO 文字列
   endDate: string
   status: 'ACTIVE' | 'CLOSED' // CLOSED = 終了（閲覧専用）
+  modules: string[] // このイベントで使う機能のキー（lib/modules.ts）
 }
 
 export interface EventsResponse {

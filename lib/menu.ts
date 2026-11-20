@@ -41,6 +41,7 @@ export const MENU_ITEMS: MenuItem[] = [
 ]
 
 // 管理画面のメニュー末尾に固定する項目（管理者専用のため一般画面にはなく、並び替えの対象外）
+export const EVENTS_ADMIN_ITEM = { href: '/admin/events', label: 'イベント管理', icon: '🗂️' }
 export const PARTICIPATION_ADMIN_ITEM = { href: '/admin/participation', label: '参加者の登録', icon: '✅' }
 export const ROLL_CALL_ADMIN_ITEM = { href: '/admin/roll-call', label: '点呼チェック', icon: '📝' }
 export const MENU_ORDER_ADMIN_ITEM = { href: '/admin/menu-order', label: 'メニュー並び替え', icon: '⚙️' }

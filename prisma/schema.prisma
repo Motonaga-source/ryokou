@@ -24,6 +24,8 @@ model Trip {
   pocketMoney Int?
   status      String   @default("ACTIVE") // "ACTIVE"（開催予定・開催中）| "CLOSED"（終了。閲覧専用）
   sortOrder   Int      @default(0)        // イベント切り替えの並び順
+  modules     String[] @default([])       // このイベントで使う機能のキー（lib/modules.ts。例: "persons", "pickup"）
+  dashboardNotes String?                  // ダッシュボードの「重要な注意事項」（1行1項目。**太字** が使える）
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useMenuItems } from '@/lib/useMenuOrder'
+import { useModules } from '@/lib/useCurrentEvent'
 import { PRINT_PATH } from '@/lib/menu'
 import EventSwitcher from '@/components/EventSwitcher'
 
@@ -11,7 +12,11 @@ import EventSwitcher from '@/components/EventSwitcher'
 export default function Sidebar() {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
-  const navItems = useMenuItems().map(m => ({ href: m.path, label: m.label, icon: m.icon }))
+  const { menuEnabled } = useModules()
+  // 選択中のイベントで ON の機能だけをメニューに出す（並び順は全体で1つ）
+  const navItems = useMenuItems()
+    .filter(m => menuEnabled(m.path))
+    .map(m => ({ href: m.path, label: m.label, icon: m.icon }))
 
   // 印刷専用ページではサイドバーを出さない
   if (pathname === PRINT_PATH) return null

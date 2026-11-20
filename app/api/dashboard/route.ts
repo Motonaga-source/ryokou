@@ -7,16 +7,10 @@ import { resolveTripId } from '@/lib/event'
 export async function GET(request: Request) {
   const tripId = await resolveTripId(request)
 
+  // イベントが見つからないときは trip: null（画面は「旅行管理システム」の見出しだけになる）
   const trip = await prisma.trip.findUnique({
     where: { id: tripId }
-  }) || {
-    name: '滋賀への一泊旅行',
-    destination: '滋賀',
-    startDate: new Date().toISOString(),
-    endDate: new Date().toISOString(),
-    travelFee: 26000,
-    pocketMoney: 11000
-  }
+  })
 
   const participations = await prisma.tripParticipation.findMany({
     where: { tripId, status: '参加' },
