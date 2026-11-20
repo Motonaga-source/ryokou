@@ -17,6 +17,10 @@ export async function POST(request: Request) {
   const tripId = await resolveTripId(request)
   const layout = await prisma.seatLayout.findFirst({ where: { id: Number(body.layoutId) || 0, tripId } })
   if (!layout) return notFound('配置図')
+  // 同じ配置図に同じ名前のテーブルは作らない（追加ボタンの二重押しなどで、同じテーブルが重なって作られるのを防ぐ）
+  if (await prisma.seatTable.findFirst({ where: { layoutId: layout.id, name: input.name } })) {
+    return badRequest(`「${input.name}」というテーブルはすでにあります。別の名前にしてください`)
+  }
 
   const pos = parsePosition({ x: body.x ?? 20, y: body.y ?? 20 }, tableGeometry(input), layout) ?? { x: 20, y: 20 }
   const table = await prisma.seatTable.create({ data: { tripId, layoutId: layout.id, ...input, ...pos } })

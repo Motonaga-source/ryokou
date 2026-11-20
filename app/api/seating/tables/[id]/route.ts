@@ -27,6 +27,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   const input = parseTableInput(body)
   if (typeof input === 'string') return badRequest(input)
+  if (await prisma.seatTable.findFirst({ where: { layoutId: table.layoutId, name: input.name, id: { not: table.id } } })) {
+    return badRequest(`「${input.name}」というテーブルはすでにあります。別の名前にしてください`)
+  }
   // 形・席数が変わって大きさが変わっても、配置図の中に収める
   const pos = parsePosition(table, tableGeometry(input), table.layout) ?? { x: table.x, y: table.y }
   const [removed] = await prisma.$transaction([

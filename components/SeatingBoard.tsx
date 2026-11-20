@@ -108,14 +108,14 @@ export default function SeatingBoard({ editable = false }: { editable?: boolean 
   const warnSeat = (a: SeatAssignmentData | undefined) => !!a && (wcOnNormal.includes(a) || normalOnWc.includes(a))
   // 配置の重なり（テーブルどうし・テーブルと目印）。席に座れなくなるので配置モードで警告する
   const boxes = [
-    ...(layout?.tables ?? []).map(t => ({ name: t.name, table: true, x: t.x, y: t.y, w: tableGeometry(t).w, h: tableGeometry(t).h })),
-    ...(layout?.landmarks ?? []).map(l => ({ name: l.label, table: false, x: l.x, y: l.y, w: l.w, h: l.h })),
+    ...(layout?.tables ?? []).map(t => ({ type: 'table' as const, id: t.id, name: t.name, table: true, x: t.x, y: t.y, w: tableGeometry(t).w, h: tableGeometry(t).h })),
+    ...(layout?.landmarks ?? []).map(l => ({ type: 'landmark' as const, id: l.id, name: l.label, table: false, x: l.x, y: l.y, w: l.w, h: l.h })),
   ]
   const overlaps = boxes.flatMap((a, i) =>
     boxes
       .slice(i + 1)
       .filter(b => (a.table || b.table) && a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h)
-      .map(b => `${a.name} と ${b.name}`)
+      .map(b => [a, b] as const)
   )
   const nameOf = (a: SeatAssignmentData) => `${personById.get(a.personId)!.name}（${tableById.get(a.tableId)!.name}）`
 
@@ -168,33 +168,67 @@ export default function SeatingBoard({ editable = false }: { editable?: boolean 
     await run(() => request(`/api/seating/${type === 'table' ? 'tables' : 'landmarks'}/${id}`, 'PUT', { x, y }))
   }
 
-  // 新しいテーブル・目印を置く場所（左上から少しずつずらす）
-  const nextSpot = () => {
-    const n = (layout?.tables.length ?? 0) + (layout?.landmarks.length ?? 0)
-    return { x: 20 + (n % 6) * 40, y: 20 + (n % 6) * 30 }
+  // 新しいテーブル・目印を置く場所: 左上から順に、ほかのテーブル・目印と重ならない空き場所を探す
+  // （以前は「台数」だけで決めていたため、保存前に続けて押すと同じ場所にぴったり重なって作られていた）
+  const freeSpot = (w: number, h: number) => {
+    if (!layout) return { x: 20, y: 20 }
+    const M = GRID
+    for (let y = 20; y + h <= layout.height; y += 40) {
+      for (let x = 20; x + w <= layout.width; x += 40) {
+        if (boxes.every(b => x + w + M <= b.x || b.x + b.w + M <= x || y + h + M <= b.y || b.y + b.h + M <= y)) return { x, y }
+      }
+    }
+    return { x: 20, y: 20 } // 空きがなければ左上（重なりの警告が出る）
   }
 
-  const addTable = async () => {
-    if (!layout) return
-    const { error: err, json } = await request('/api/seating/tables', 'POST', {
-      layoutId: layout.id,
-      name: `テーブル${layout.tables.length + 1}`,
-      shape: 'rect',
-      seats: 4,
-      wheelchairSlots: 0,
-      ...nextSpot(),
+  // 「テーブルN」のうち、まだ使われていない一番小さい番号
+  const newTableName = () => {
+    const names = new Set(layout?.tables.map(t => t.name) ?? [])
+    let n = 1
+    while (names.has(`テーブル${n}`)) n++
+    return `テーブル${n}`
+  }
+
+  // 追加ボタンの二重押し防止。saving は再描画まで反映されないため、押した瞬間に ref で止める
+  const adding = useRef(false)
+  const addItem = async (url: string, body: Record<string, unknown>, type: 'table' | 'landmark') => {
+    if (!layout || adding.current) return
+    adding.current = true
+    setSaving(true)
+    try {
+      const { error: err, json } = await request(url, 'POST', { layoutId: layout.id, ...body })
+      setError(err)
+      await reload()
+      if (json?.id) setSelected({ type, id: Number(json.id) })
+    } finally {
+      adding.current = false
+      setSaving(false)
+    }
+  }
+
+  const addTable = () => {
+    const g = tableGeometry({ shape: 'rect', seats: 4 })
+    return addItem('/api/seating/tables', { name: newTableName(), shape: 'rect', seats: 4, wheelchairSlots: 0, ...freeSpot(g.w, g.h) }, 'table')
+  }
+
+  const addLandmark = (kind: string) => addItem('/api/seating/landmarks', { kind, ...freeSpot(120, 60) }, 'landmark')
+
+  // すでに重複して作られてしまったテーブル（同じ名前・形・席数・位置のもの）。先に作られた1台を残し、誰も座っていない後の分を消せる
+  const duplicateTables = (layout?.tables ?? []).filter((t, i, list) =>
+    list.slice(0, i).some(o => o.name === t.name && o.shape === t.shape && o.seats === t.seats && o.x === t.x && o.y === t.y)
+  )
+  const removableDuplicates = duplicateTables.filter(t => !seated.some(a => a.tableId === t.id))
+  const removeDuplicates = async () => {
+    if (removableDuplicates.length === 0) return
+    if (!confirm(`同じ場所に重なって作られたテーブル ${removableDuplicates.length}台（${removableDuplicates.map(t => t.name).join('、')}）を削除します。元の1台ずつは残ります。よろしいですか？`)) return
+    await run(async () => {
+      for (const t of removableDuplicates) {
+        const res = await request(`/api/seating/tables/${t.id}`, 'DELETE')
+        if (res.error) return res
+      }
+      return { error: null }
     })
-    setError(err)
-    await reload()
-    if (json?.id) setSelected({ type: 'table', id: Number(json.id) })
-  }
-
-  const addLandmark = async (kind: string) => {
-    if (!layout) return
-    const { error: err, json } = await request('/api/seating/landmarks', 'POST', { layoutId: layout.id, kind, ...nextSpot() })
-    setError(err)
-    await reload()
-    if (json?.id) setSelected({ type: 'landmark', id: Number(json.id) })
+    setSelected(null)
   }
 
   const onDragStart = (e: DragStartEvent) => {
@@ -334,9 +368,44 @@ export default function SeatingBoard({ editable = false }: { editable?: boolean 
                 {wcUsers.length > wcSeatCount && '（枠が足りません）'}
               </span>
             </div>
+            {placing && duplicateTables.length > 0 && (
+              <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800 space-y-1.5 print:hidden">
+                <p>
+                  ⚠️ 同じ場所に同じテーブルが重なって作られています（{duplicateTables.map(t => t.name).join('、')}）。
+                  上のテーブルを動かすと、下に同じテーブルが残っているように見えます。
+                </p>
+                {removableDuplicates.length > 0 && (
+                  <button onClick={removeDuplicates} disabled={saving} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">
+                    🧹 重複したテーブル {removableDuplicates.length}台を削除（元の1台ずつは残します）
+                  </button>
+                )}
+                {removableDuplicates.length < duplicateTables.length && (
+                  <p className="text-xs">人が座っている重複テーブルは自動では消しません。下の一覧から選んで、座っている人を移してから削除してください。</p>
+                )}
+              </div>
+            )}
             {placing && overlaps.length > 0 && (
               <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800 print:hidden">
-                ⚠️ 重なっているものがあります（席に座れない・見えない場合があります）：{overlaps.join('、')}
+                ⚠️ 重なっているものがあります（席に座れない・見えない場合があります）。名前を押すと選んで編集・削除できます：
+                <span className="inline-flex flex-wrap gap-x-2 gap-y-1 align-middle">
+                  {overlaps.map(([a, b], i) => (
+                    <span key={i} className="whitespace-nowrap">
+                      {[a, b].map((x, j) => (
+                        <span key={`${x.type}-${x.id}`}>
+                          {j === 1 && ' と '}
+                          <button
+                            onClick={() => setSelected({ type: x.type, id: x.id })}
+                            className="font-semibold underline decoration-dotted underline-offset-2 hover:text-red-950"
+                            title={`${x.name}（ID ${x.id}）を選ぶ`}
+                          >
+                            {x.name}
+                          </button>
+                        </span>
+                      ))}
+                      {i < overlaps.length - 1 && '、'}
+                    </span>
+                  ))}
+                </span>
               </div>
             )}
             {(wcOnNormal.length > 0 || normalOnWc.length > 0) && (
