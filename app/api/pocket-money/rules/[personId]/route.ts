@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 import { getSession } from '@/lib/auth'
 import { canRequireCollection, isAllowanceType } from '@/lib/allowance'
 
@@ -22,13 +23,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ pers
     return NextResponse.json({ error: '回収の要否が不正です' }, { status: 400 })
   }
 
-  const { count } = await prisma.person.updateMany({
-    where: { id: parseInt(personId), role: 'USER' },
+  // このイベントの参加レコードに保存する
+  const tripId = await resolveTripId(request)
+  const { count } = await prisma.tripParticipation.updateMany({
+    where: { tripId, personId: parseInt(personId), person: { role: 'USER' } },
     data: {
       allowanceManagementType: type,
       allowanceRequiresCollection: canRequireCollection(type) && body.allowanceRequiresCollection,
     },
   })
-  if (count === 0) return NextResponse.json({ error: '利用者が見つかりません' }, { status: 404 })
+  if (count === 0) return NextResponse.json({ error: 'このイベントの参加者に利用者が見つかりません' }, { status: 404 })
   return NextResponse.json({ success: true })
 }

@@ -27,17 +27,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ pers
     return NextResponse.json({ error: `使用額は0〜${MAX_ALLOWANCE_YEN.toLocaleString()}円の整数で入力してください` }, { status: 400 })
   }
 
-  const person = await prisma.person.findFirst({ where: { id, role: 'USER' }, select: { allowanceManagementType: true } })
-  if (!person) {
-    return NextResponse.json({ error: '利用者が見つかりません' }, { status: 404 })
+  // 管理区分はこのイベントの参加レコードで判定する
+  const participation = await prisma.tripParticipation.findFirst({
+    where: { tripId, personId: id, person: { role: 'USER' } },
+    select: { allowanceManagementType: true },
+  })
+  if (!participation) {
+    return NextResponse.json({ error: 'このイベントの参加者に利用者が見つかりません' }, { status: 404 })
   }
-  if (!isCorporateAllowance(person.allowanceManagementType)) {
+  if (!isCorporateAllowance(participation.allowanceManagementType)) {
     return NextResponse.json({ error: '自己管理（法人準備なし）の方は支給額を設定できません' }, { status: 400 })
   }
 
   const data = { allocated: body.allocated, used: body.used, remaining: body.allocated - body.used }
   const record = await prisma.pocketMoneyRecord.upsert({
-    where: { personId: id },
+    where: { tripId_personId: { tripId, personId: id } },
     create: { tripId, personId: id, ...data },
     update: data,
   })

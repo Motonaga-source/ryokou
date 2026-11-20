@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveTripId } from '@/lib/event'
+import { isParticipationStatus, normalizeMemo, withEventFields } from '@/lib/participation'
 
 // GET /api/persons
 export async function GET(request: Request) {
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
       medication: true,
       participations: { where: { tripId } }, // 選択中のイベントの参加状況だけ
       roomAssignments: {
+        where: { room: { tripId } },
         include: { room: true },
       },
       vitalRecords: {
@@ -27,7 +29,8 @@ export async function GET(request: Request) {
     },
     orderBy: { name: 'asc' },
   })
-  return NextResponse.json(persons)
+  // 送迎メモなどイベントごとの項目は、選択中のイベントの参加レコードの値を同じ名前で返す
+  return NextResponse.json(persons.map(withEventFields))
 }
 
 // POST /api/persons
@@ -45,18 +48,16 @@ export async function POST(request: Request) {
       notes: personData.notes,
       isWheelchair: personData.isWheelchair || false,
       isFishNG: personData.isFishNG || false,
-      pickupMemo: String(personData.pickupMemo ?? '').trim() || null,
     } 
   })
 
-  // デフォルト参加処理
-  const initialStatus = status || '参加'
-  
+  // 選択中のイベントの参加レコードを作る（送迎メモはイベントごとの項目）
   await prisma.tripParticipation.create({
     data: {
       personId: person.id,
       tripId,
-      status: initialStatus
+      status: isParticipationStatus(status) ? status : '参加',
+      pickupMemo: normalizeMemo(personData.pickupMemo) ?? null,
     }
   })
 

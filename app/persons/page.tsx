@@ -85,7 +85,7 @@ export default function PersonsPage() {
       facility: person.facility, 
       notes: person.notes,
       isWheelchair: person.isWheelchair,
-      status: person.participations[0]?.status || '参加'
+      status: person.participations[0]?.status || '不参加' // このイベントに未登録なら「不参加」
     })
   }
 
@@ -347,7 +347,7 @@ export default function PersonsPage() {
                       ))}
                     </select>
                     <select
-                      value={editForm.status || '参加'}
+                      value={editForm.status || '不参加'}
                       onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
                       className="border border-gray-300 rounded-xl px-3 py-2 text-sm"
                     >

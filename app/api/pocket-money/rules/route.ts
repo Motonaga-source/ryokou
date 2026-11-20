@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { EVENT_FIELDS_SELECT, eventFieldsOf } from '@/lib/participation'
 import { getSession } from '@/lib/auth'
 import type { AllowanceRule } from '@/lib/allowance'
 import { resolveTripId } from '@/lib/event'
@@ -15,10 +16,20 @@ export async function GET(request: Request) {
 
   const tripId = await resolveTripId(request)
 
-  const rules: AllowanceRule[] = await prisma.person.findMany({
+  const persons = await prisma.person.findMany({
     where: { role: 'USER', participations: { some: { tripId, status: '参加' } } },
-    select: { id: true, name: true, facility: true, allowanceManagementType: true, allowanceRequiresCollection: true },
+    select: {
+      id: true,
+      name: true,
+      facility: true,
+      participations: { where: { tripId }, select: EVENT_FIELDS_SELECT },
+    },
     orderBy: [{ facility: 'asc' }, { id: 'asc' }],
+  })
+  // 管理区分・事後回収は、このイベントの参加レコードの値
+  const rules: AllowanceRule[] = persons.map(({ participations, ...p }) => {
+    const f = eventFieldsOf(participations[0])
+    return { ...p, allowanceManagementType: f.allowanceManagementType, allowanceRequiresCollection: f.allowanceRequiresCollection }
   })
   return NextResponse.json(rules)
 }

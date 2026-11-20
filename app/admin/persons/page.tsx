@@ -88,7 +88,7 @@ export default function PersonsPage() {
       isWheelchair: person.isWheelchair,
       isFishNG: person.isFishNG,
       pickupMemo: person.pickupMemo,
-      status: person.participations[0]?.status || '参加'
+      status: person.participations[0]?.status || '不参加' // このイベントに未登録なら「不参加」
     })
   }
 
@@ -158,6 +158,7 @@ export default function PersonsPage() {
           <h1 className="text-2xl font-bold text-gray-800">👥 参加者名簿 (編集)</h1>
           <p className="text-gray-500 text-sm mt-1">
             {filtered.length}名 / 全{persons.length}名
+            <a href="/admin/participation" className="ml-3 text-blue-600 underline">✅ このイベントの参加／不参加をまとめて登録</a>
           </p>
         </div>
         <button
@@ -361,7 +362,7 @@ export default function PersonsPage() {
                       ))}
                     </select>
                     <select
-                      value={editForm.status || '参加'}
+                      value={editForm.status || '不参加'}
                       onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
                       className="border border-gray-300 rounded-xl px-3 py-2 text-sm"
                     >

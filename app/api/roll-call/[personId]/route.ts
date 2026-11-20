@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 import { getSession } from '@/lib/auth'
 
 // PUT /api/roll-call/:personId  点呼チェックを設定（管理者のみ）
@@ -16,8 +17,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ pers
     return NextResponse.json({ error: 'isRollCalled が不正です' }, { status: 400 })
   }
 
-  const { count } = await prisma.person.updateMany({
-    where: { id: parseInt(personId) },
+  // このイベントの参加レコードに保存する
+  const tripId = await resolveTripId(request)
+  const { count } = await prisma.tripParticipation.updateMany({
+    where: { tripId, personId: parseInt(personId) },
     data: { isRollCalled: body.isRollCalled },
   })
   if (count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })

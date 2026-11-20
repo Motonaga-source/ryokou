@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { EVENT_FIELDS_SELECT, eventFieldsOf } from '@/lib/participation'
 import { isCorporateAllowance } from '@/lib/allowance'
 import { resolveTripId } from '@/lib/event'
 
@@ -16,7 +17,10 @@ export async function GET(request: Request) {
       role: 'USER',
       participations: { some: { tripId, status: '参加' } },
     },
-    include: { pocketMoneyRecord: true },
+    include: {
+      pocketMoneyRecords: { where: { tripId } },
+      participations: { where: { tripId }, select: EVENT_FIELDS_SELECT },
+    },
     orderBy: [{ facility: 'asc' }, { id: 'asc' }],
   })
 
@@ -24,8 +28,10 @@ export async function GET(request: Request) {
   let totalUsed = 0
 
   const records = persons.map(person => {
-    const rec = person.pocketMoneyRecord
-    const corporate = isCorporateAllowance(person.allowanceManagementType)
+    const rec = person.pocketMoneyRecords[0]
+    // 小遣いの管理区分・事後回収は、このイベントの参加レコードの値
+    const rule = eventFieldsOf(person.participations[0])
+    const corporate = isCorporateAllowance(rule.allowanceManagementType)
     const allocated = rec ? rec.allocated : null
     const used = rec ? rec.used : 0
     if (corporate && allocated !== null) {
@@ -45,8 +51,8 @@ export async function GET(request: Request) {
         facility: person.facility,
         isWheelchair: person.isWheelchair,
         // 小遣いの事前ルール（一般画面の管理区分ごとの表示に使う）
-        allowanceManagementType: person.allowanceManagementType,
-        allowanceRequiresCollection: person.allowanceRequiresCollection,
+        allowanceManagementType: rule.allowanceManagementType,
+        allowanceRequiresCollection: rule.allowanceRequiresCollection,
       },
     }
   })

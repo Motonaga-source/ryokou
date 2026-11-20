@@ -16,17 +16,22 @@ export async function GET(request: Request) {
       select: { id: true, itemName: true, category: true },
       orderBy: { id: 'asc' },
     }),
-    prisma.person.findMany({
+    // 車椅子の出所は、このイベントの参加レコードの値
+    prisma.tripParticipation.findMany({
       where: {
-        participations: { some: { tripId, status: '参加' } },
-        OR: [{ isWheelchair: true }, { wheelchairSource: { not: null } }],
+        tripId,
+        status: '参加',
+        OR: [{ person: { isWheelchair: true } }, { wheelchairSource: { not: null } }],
       },
-      select: { id: true, name: true, isWheelchair: true, wheelchairSource: true },
-      orderBy: { id: 'asc' },
+      select: { wheelchairSource: true, person: { select: { id: true, name: true, isWheelchair: true } } },
+      orderBy: { personId: 'asc' },
     }),
   ])
 
-  const body: SuppliesResponse = { items, wheelchairs }
+  const body: SuppliesResponse = {
+    items,
+    wheelchairs: wheelchairs.map(w => ({ ...w.person, wheelchairSource: w.wheelchairSource })),
+  }
   return NextResponse.json(body)
 }
 

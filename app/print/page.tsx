@@ -37,12 +37,15 @@ export default async function PrintPage() {
   if (!event) return <p className="p-8">イベントが登録されていません。</p>
   const TRIP_ID = event.id
   const days = eventDays(event)
-  const [trip, persons, schedules, supplies, vehicles, pickups, busSeats, cars, rooms, teams, bathing, banquet, lunchTables, lunchSeats] =
+  const [trip, personRows, schedules, supplies, vehicles, pickups, busSeats, cars, rooms, teams, bathing, banquet, lunchTables, lunchSeats] =
     await Promise.all([
       prisma.trip.findUnique({ where: { id: TRIP_ID } }),
       prisma.person.findMany({
         where: { participations: { some: { tripId: TRIP_ID, status: '参加' } } },
-        select: { id: true, name: true, role: true, gender: true, isWheelchair: true, isFishNG: true, wheelchairSource: true },
+        select: {
+          id: true, name: true, role: true, gender: true, isWheelchair: true, isFishNG: true,
+          participations: { where: { tripId: TRIP_ID }, select: { wheelchairSource: true } },
+        },
         orderBy: { id: 'asc' },
       }),
       prisma.schedule.findMany({ where: { tripId: TRIP_ID }, orderBy: [{ dayNo: 'asc' }, { sortOrder: 'asc' }] }),
@@ -58,6 +61,9 @@ export default async function PrintPage() {
       prisma.lunchTable.findMany({ where: { tripId: TRIP_ID } }),
       prisma.lunchSeatAssignment.findMany({ where: { tripId: TRIP_ID } }),
     ])
+
+  // 車椅子の出所は、このイベントの参加レコードの値
+  const persons: P[] = personRows.map(({ participations, ...p }) => ({ ...p, wheelchairSource: participations[0]?.wheelchairSource ?? null }))
 
   // 参加者のみを対象にする（不参加・保留の人の割り当ては表示しない）
   const byId = new Map(persons.map(p => [p.id, p]))

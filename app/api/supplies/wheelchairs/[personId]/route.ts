@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveTripId } from '@/lib/event'
 import { getSession } from '@/lib/auth'
 import { isWheelchairSource } from '@/lib/supplies'
 
@@ -18,8 +19,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ pe
     return NextResponse.json({ error: 'wheelchairSource が不正です' }, { status: 400 })
   }
 
-  const { count } = await prisma.person.updateMany({
-    where: { id: parseInt(personId) },
+  // このイベントの参加レコードに保存する
+  const tripId = await resolveTripId(request)
+  const { count } = await prisma.tripParticipation.updateMany({
+    where: { tripId, personId: parseInt(personId) },
     data: { wheelchairSource: source },
   })
   if (count === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 })

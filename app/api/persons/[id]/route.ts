@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveTripId } from '@/lib/event'
+import { isParticipationStatus, normalizeMemo } from '@/lib/participation'
 
 // GET /api/persons/[id]
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -13,7 +14,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       roomAssignments: { include: { room: true } },
       vitalRecords: { orderBy: { recordedAt: 'desc' } },
       bathingAssignments: true,
-      pocketMoneyRecord: true,
+      pocketMoneyRecords: true,
     },
   })
   if (!person) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -34,26 +35,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       notes: body.notes,
       isWheelchair: body.isWheelchair ?? undefined,
       isFishNG: body.isFishNG ?? undefined,
-      pickupMemo: body.pickupMemo === undefined ? undefined : (String(body.pickupMemo ?? '').trim() || null),
     },
   })
 
-  // 参加ステータスの更新があれば、選択中のイベントの参加状況として保存する
-  if (body.status) {
+  // 参加ステータス・送迎メモは、選択中のイベントの参加レコードに保存する
+  const status = isParticipationStatus(body.status) ? body.status : undefined
+  const pickupMemo = normalizeMemo(body.pickupMemo)
+  if (status !== undefined || pickupMemo !== undefined) {
     const tripId = await resolveTripId(request)
     await prisma.tripParticipation.upsert({
-      where: {
-        tripId_personId: {
-          tripId,
-          personId: parseInt(id)
-        }
-      },
-      update: { status: body.status },
-      create: {
-        tripId,
-        personId: parseInt(id),
-        status: body.status
-      }
+      where: { tripId_personId: { tripId, personId: person.id } },
+      update: { status, pickupMemo },
+      // 参加レコードがまだない人は、指定がなければ「不参加」で作る（編集しただけで参加にならないように）
+      create: { tripId, personId: person.id, status: status ?? '不参加', pickupMemo: pickupMemo ?? null },
     })
   }
 
@@ -64,10 +58,24 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
-    await prisma.person.delete({ where: { id: parseInt(id) } })
+    const personId = parseInt(id)
+    // 名簿は全イベント共通。削除するとその人の全イベントの記録も消えるため、
+    // 終了したイベント（閲覧専用）に参加記録がある人は削除できないようにする
+    const closed = await prisma.tripParticipation.findFirst({
+      where: { personId, trip: { status: 'CLOSED' } },
+      select: { trip: { select: { name: true } } },
+    })
+    if (closed) {
+      return NextResponse.json(
+        { error: `終了したイベント「${closed.trip.name}」の記録があるため削除できません。このイベントに参加しない場合は「参加者の登録」で不参加にしてください。` },
+        { status: 409 }
+      )
+    }
+    await prisma.person.delete({ where: { id: personId } })
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Delete Error:', error)
-    return NextResponse.json({ error: error.message || '削除に失敗しました。関連データを確認してください。' }, { status: 500 })
+    const message = error instanceof Error ? error.message : ''
+    return NextResponse.json({ error: message || '削除に失敗しました。関連データを確認してください。' }, { status: 500 })
   }
 }

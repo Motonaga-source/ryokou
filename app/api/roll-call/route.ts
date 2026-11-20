@@ -17,7 +17,10 @@ export async function GET(request: Request) {
   const [persons, vehicles, pickups, teams, busSeats, cars] = await Promise.all([
     prisma.person.findMany({
       where: { participations: { some: { tripId, status: '参加' } } },
-      select: { id: true, name: true, role: true, gender: true, isWheelchair: true, isFishNG: true, isRollCalled: true },
+      select: {
+        id: true, name: true, role: true, gender: true, isWheelchair: true, isFishNG: true,
+        participations: { where: { tripId }, select: { isRollCalled: true } },
+      },
       orderBy: { id: 'asc' },
     }),
     prisma.pickupVehicle.findMany({
@@ -43,7 +46,8 @@ export async function GET(request: Request) {
   ])
 
   return NextResponse.json({
-    persons,
+    // 点呼済みかどうかは、このイベントの参加レコードの値
+    persons: persons.map(({ participations, ...p }) => ({ ...p, isRollCalled: participations[0]?.isRollCalled ?? false })),
     vehicles,
     pickups,
     teams: teams.map(t => ({ id: t.id, name: t.name, memberIds: t.members.map(m => m.personId) })),
@@ -59,8 +63,8 @@ export async function DELETE(request: Request) {
 
   const tripId = await resolveTripId(request)
 
-  const { count } = await prisma.person.updateMany({
-    where: { participations: { some: { tripId } }, isRollCalled: true },
+  const { count } = await prisma.tripParticipation.updateMany({
+    where: { tripId, isRollCalled: true },
     data: { isRollCalled: false },
   })
   return NextResponse.json({ success: true, cleared: count })

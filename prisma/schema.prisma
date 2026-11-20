@@ -52,13 +52,14 @@ model Person {
   role      String   // "STAFF" | "USER"
   isAdmin      Boolean  @default(false)
   isWheelchair Boolean  @default(false)
-  wheelchairSource   String?  // 車椅子の出所: "グレイス貸出" | "持参"
+  // ↓ イベントごとに変わる項目は P2 から TripParticipation に移した。Person 側の列は旧データとして残すだけ（読み書きしない）
+  wheelchairSource   String?  // 旧（→ TripParticipation.wheelchairSource）
   wheelchairPrepared Boolean  @default(false) // 未使用（旧: 持ち物チェックの準備済み）
   isFishNG     Boolean  @default(false) // 魚料理NG
-  pickupMemo   String?  // 集合・送迎の特記事項
-  isRollCalled Boolean  @default(false) // 簡易点呼のチェック状態（履歴なし。点呼のたびに一括クリアして使い回す）
-  allowanceManagementType     String?  // 小遣いの管理区分: "STAFF"（スタッフ管理）| "USER"（本人管理）| "SELF"（自己管理・法人準備なし）
-  allowanceRequiresCollection Boolean  @default(false) // 小遣いの事後回収（お釣り・レシート等）が必要か
+  pickupMemo   String?  // 旧（→ TripParticipation.pickupMemo）
+  isRollCalled Boolean  @default(false) // 旧（→ TripParticipation.isRollCalled）
+  allowanceManagementType     String?  // 旧（→ TripParticipation.allowanceManagementType）
+  allowanceRequiresCollection Boolean  @default(false) // 旧（→ TripParticipation.allowanceRequiresCollection）
   password  String?
   facility  String?
   notes     String?
@@ -75,7 +76,7 @@ model Person {
   bathingAssignments BathingAssignment[]
   banquetSeats       BanquetSeatAssignment[]
   lunchSeats         LunchSeatAssignment[]
-  pocketMoneyRecord  PocketMoneyRecord?
+  pocketMoneyRecords PocketMoneyRecord[]
   carryItems         SupplyCarryAssignment[]
   pickupAssignments  PickupAssignment[]
 }
@@ -110,6 +111,13 @@ model TripParticipation {
   feeCollected Boolean @default(false)
   notes        String?
   gatherPlace  String?
+
+  // ===== イベントごとに変わる項目（P2 で Person から移した） =====
+  pickupMemo   String?  // 集合・送迎の特記事項
+  isRollCalled Boolean  @default(false) // 簡易点呼のチェック状態（履歴なし。点呼のたびに一括クリアして使い回す）
+  wheelchairSource String? // 車椅子の出所: "グレイス貸出" | "持参"
+  allowanceManagementType     String?  // 小遣いの管理区分: "STAFF"（スタッフ管理）| "USER"（本人管理）| "SELF"（自己管理・法人準備なし）
+  allowanceRequiresCollection Boolean  @default(false) // 小遣いの事後回収（お釣り・レシート等）が必要か
 
   trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
@@ -316,13 +324,15 @@ model BusSeatAssignment {
 model PocketMoneyRecord {
   id        Int @id @default(autoincrement())
   tripId    Int
-  personId  Int @unique
+  personId  Int // イベントごとに1件（P2 までは personId だけで一意だった）
   allocated Int
   used      Int @default(0)
   remaining Int @default(0)
 
   trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, personId])
 }
 
 // ===== スケジュール =====
