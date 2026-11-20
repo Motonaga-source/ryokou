@@ -35,6 +35,7 @@ const quickLinks = [
   { href: '/medications', label: '服薬情報', icon: '💉', color: 'bg-purple-50 border-purple-200 text-purple-700', desc: '投薬内容の確認' },
   { href: '/teams', label: 'チーム・配置', icon: '📋', color: 'bg-green-50 border-green-200 text-green-700', desc: 'チーム編成・入浴担当' },
   { href: '/schedule', label: 'スケジュール', icon: '🗓️', color: 'bg-yellow-50 border-yellow-200 text-yellow-700', desc: '当日の流れを確認' },
+  { href: '/transport', label: '送迎表', icon: '🚐', color: 'bg-cyan-50 border-cyan-200 text-cyan-700', desc: '集合場所と車の割り当て' },
   { href: '/pocket-money', label: '小遣い精算', icon: '💴', color: 'bg-orange-50 border-orange-200 text-orange-700', desc: '使用額・残額管理' },
 ]
 
