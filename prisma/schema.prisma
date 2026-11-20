@@ -46,6 +46,10 @@ model Trip {
   groupSections      GroupSection[]
   groupSlots         GroupSlot[]
   groupAssignments   GroupAssignment[]
+  seatLayouts        SeatLayout[]
+  seatTables         SeatTable[]
+  seatLandmarks      SeatLandmark[]
+  seatAssignments    SeatAssignment[]
 }
 
 // ===== 人物（スタッフ・利用者共通） =====
@@ -85,6 +89,7 @@ model Person {
   carryItems         SupplyCarryAssignment[]
   pickupAssignments  PickupAssignment[]
   groupAssignments   GroupAssignment[]
+  seatAssignments    SeatAssignment[]
 }
 
 // ===== 服薬情報（利用人のみ） =====
@@ -456,4 +461,80 @@ model GroupAssignment {
   slot   GroupSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
 
   @@unique([tripId, personId])
+}
+
+// ===== 汎用の席レイアウト（機能キー "seating"。1つのイベントに複数の配置図を持てる） =====
+// 座標は配置図の左上を (0,0) とする論理ピクセル（画面の幅に合わせて縮小して表示する）
+
+// 配置図（例: 1次会・焼肉店 2階）
+model SeatLayout {
+  id        Int     @id @default(autoincrement())
+  tripId    Int
+  name      String
+  width     Int     @default(1200)
+  height    Int     @default(800)
+  sortOrder Int     @default(0)
+
+  trip        Trip             @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  tables      SeatTable[]
+  landmarks   SeatLandmark[]
+  assignments SeatAssignment[]
+
+  @@index([tripId])
+}
+
+// テーブル（席は 0 から数える。最後の wheelchairSlots 席が車椅子枠）
+model SeatTable {
+  id              Int     @id @default(autoincrement())
+  tripId          Int
+  layoutId        Int
+  name            String
+  shape           String  @default("rect") // "rect"（長方形・両側）| "counter"（片側）| "round"（丸）
+  seats           Int
+  wheelchairSlots Int     @default(0)
+  x               Int     @default(0)
+  y               Int     @default(0)
+  memo            String?
+
+  trip        Trip             @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  layout      SeatLayout       @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  assignments SeatAssignment[]
+
+  @@index([layoutId])
+}
+
+// 目印（入口・レジ・トイレなど。人は座らない）
+model SeatLandmark {
+  id       Int    @id @default(autoincrement())
+  tripId   Int
+  layoutId Int
+  kind     String @default("other") // lib/seating.ts の LANDMARK_KINDS
+  label    String
+  x        Int    @default(0)
+  y        Int    @default(0)
+  w        Int    @default(120)
+  h        Int    @default(60)
+
+  trip   Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  layout SeatLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+
+  @@index([layoutId])
+}
+
+// 割り当て: 1つの席に1人、1つの配置図で1人1席
+model SeatAssignment {
+  id        Int @id @default(autoincrement())
+  tripId    Int
+  layoutId  Int
+  tableId   Int
+  seatIndex Int
+  personId  Int
+
+  trip   Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  layout SeatLayout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  table  SeatTable  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  person Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([tableId, seatIndex])
+  @@unique([layoutId, personId])
 }

@@ -37,6 +37,7 @@ export const MENU_ITEMS: MenuItem[] = [
   item('/supplies', '持ち物', '🎒'),
   item('/pocket-money', '小遣い精算', '💴'),
   item('/transport', '送迎表', '🚐'), // 汎用の送迎表（拠点・枠を自由に作る。P4）
+  item('/seating', '席レイアウト', '🪑'), // 汎用の席レイアウト（配置図を自由に作る。P5）
   // 印刷専用ページは一般・管理の両方から同じ /print を開く
   { ...item(PRINT_PATH, '全画面一括印刷', '🖨️', '全画面一括印刷'), adminPath: PRINT_PATH },
 ]
