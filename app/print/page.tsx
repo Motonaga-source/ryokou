@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import type { Metadata } from 'next'
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import { prisma } from '@/lib/prisma'
 import { BATHING_ROLES, BATH_BADGES, sectionsByBan, sortPersons } from '@/lib/bathing'
 import { BANQUET_COLUMNS, tablesOf } from '@/lib/banquet'
@@ -11,9 +11,14 @@ import { FAMILY_GROUP, OTHER_LOCATION, PICKUP_LOCATIONS, vehicleGroupId, walkGro
 import { SUPPLY_CATEGORIES, WHEELCHAIR_LOAN } from '@/lib/supplies'
 import { LunchFloorPlan } from '@/components/LunchFloorPlan'
 import BanSectionLabel from '@/components/BanSectionLabel'
+import SeatingPlanStatic from '@/components/SeatingPlanStatic'
 import PrintButton from './PrintButton'
 import { getCurrentEvent } from '@/lib/event'
 import { dayLabel, eventDays } from '@/lib/event-shared'
+import { loadTransport } from '@/lib/transport-server'
+import { slotKindOf, type TransportResponse } from '@/lib/transport'
+import { loadSeating } from '@/lib/seating-server'
+import { isWheelchairSeat, type SeatingResponse, type SeatPerson } from '@/lib/seating'
 
 export const metadata: Metadata = { title: '印刷用まとめ | 旅行管理システム' }
 
@@ -37,6 +42,12 @@ export default async function PrintPage() {
   if (!event) return <p className="p-8">イベントが登録されていません。</p>
   const TRIP_ID = event.id
   const days = eventDays(event)
+  // 選択中のイベントで ON の機能のページだけを印刷する
+  const modules = event.modules
+  const [transport, seating] = await Promise.all([
+    modules.includes('transport') ? loadTransport(TRIP_ID) : null,
+    modules.includes('seating') ? loadSeating(TRIP_ID) : null,
+  ])
   const [trip, personRows, schedules, supplies, vehicles, pickups, busSeats, cars, rooms, teams, bathing, banquet, lunchTables, lunchSeats] =
     await Promise.all([
       prisma.trip.findUnique({ where: { id: TRIP_ID } }),
@@ -77,9 +88,9 @@ export default async function PrintPage() {
   const banquetBySeat = new Map(banquet.map(a => [a.seatId, byId.get(a.personId)]))
   const banByPerson = new Map(bathing.map(b => [b.personId, b.banNumber]))
 
-  const dateLabel = trip
-    ? `${trip.startDate.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric' })} 〜 ${trip.endDate.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric' })}`
-    : ''
+  const md = (d: Date) => d.toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'long', day: 'numeric' })
+  // 日帰りのイベントは日付を1つだけ表示する
+  const dateLabel = trip ? (md(trip.startDate) === md(trip.endDate) ? md(trip.startDate) : `${md(trip.startDate)} 〜 ${md(trip.endDate)}`) : ''
 
   return (
     <div className="max-w-[210mm] mx-auto bg-white text-black p-[10mm] print:p-0 print:max-w-none text-[12px] leading-snug">
@@ -93,8 +104,9 @@ export default async function PrintPage() {
         <Legend />
       </header>
 
-      {/* ① スケジュール */}
-      <Section title="① スケジュール">
+      {arrangeSections(modules, [
+        { key: 'schedule', title: 'スケジュール', node: (title: string) => (
+      <Section title={title}>
         {days.map(day => {
           const list = schedules.filter(s => s.dayNo === day)
           return (
@@ -126,10 +138,9 @@ export default async function PrintPage() {
           )
         })}
       </Section>
-      <PageBreak />
-
-      {/* ② 持ち物リスト */}
-      <Section title="② 持ち物リスト">
+        ) },
+        { key: 'supplies', title: '持ち物リスト', node: (title: string) => (
+      <Section title={title}>
         <div className="grid grid-cols-2 gap-4">
           <Box title="共通備品（グレイス準備）">
             <CheckList items={supplies.filter(s => s.category === SUPPLY_CATEGORIES.COMMON).map(s => s.itemName)} />
@@ -147,10 +158,9 @@ export default async function PrintPage() {
           })()}
         </div>
       </Section>
-      <PageBreak />
-
-      {/* ③ 集合・バス停への移動手段 */}
-      <Section title="③ 集合・バス停への移動手段">
+        ) },
+        { key: 'pickup', title: '集合・バス停への移動手段', node: (title: string) => (
+      <Section title={title}>
         <div className="space-y-3">
           {PICKUP_LOCATIONS.map(loc => (
             <div key={loc.id} className="print-avoid-break">
@@ -178,10 +188,9 @@ export default async function PrintPage() {
           </div>
         </div>
       </Section>
-      <PageBreak />
-
-      {/* ④ バス座席表 */}
-      <Section title="④ バス座席表">
+        ) },
+        { key: 'bus', title: 'バス座席表', node: (title: string) => (
+      <Section title={title}>
         <SubHeading>大型バス（1号車）</SubHeading>
         <div className="mx-auto max-w-[170mm] rounded-2xl border-2 border-gray-500 bg-gray-50 p-3 print-avoid-break">
           <div className="text-center text-[10px] font-bold text-gray-500 tracking-[0.5em] mb-2">後方</div>
@@ -240,10 +249,9 @@ export default async function PrintPage() {
           </>
         )}
       </Section>
-      <PageBreak />
-
-      {/* ⑤ 部屋割り */}
-      <Section title="⑤ 部屋割り">
+        ) },
+        { key: 'rooms', title: '部屋割り', node: (title: string) => (
+      <Section title={title}>
         <div className="grid grid-cols-3 gap-2">
           {rooms.map(room => {
             const members = pick(room.assignments.map(a => a.personId))
@@ -259,10 +267,9 @@ export default async function PrintPage() {
           })}
         </div>
       </Section>
-      <PageBreak />
-
-      {/* ⑤ 班分け（チーム・配置） */}
-      <Section title="⑤ 班分け（チーム・配置）">
+        ) },
+        { key: 'teams', title: '班分け（チーム・配置）', node: (title: string) => (
+      <Section title={title}>
         <div className="grid grid-cols-3 gap-2">
           {teams.map(team => {
             const leaderIds = new Set(team.members.filter(m => m.isLeader).map(m => m.personId))
@@ -276,10 +283,9 @@ export default async function PrintPage() {
         </div>
         <p className="text-[10px] mt-1">★ はリーダー</p>
       </Section>
-      <PageBreak />
-
-      {/* ⑥ 入浴管理 */}
-      <Section title="⑥ 入浴管理">
+        ) },
+        { key: 'bathing', title: '入浴管理', node: (title: string) => (
+      <Section title={title}>
         <div className="grid grid-cols-2 gap-2">
           {BATHING_ROLES.map(role => {
             // スタッフは班なし（担当）、利用者は班（入浴の順番）ごと
@@ -315,10 +321,9 @@ export default async function PrintPage() {
           })}
         </div>
       </Section>
-      <PageBreak />
-
-      {/* ⑦ 宴会 席順 */}
-      <Section title="⑦ 宴会 席順">
+        ) },
+        { key: 'banquet', title: '宴会 席順', node: (title: string) => (
+      <Section title={title}>
         <div className="grid grid-cols-3 gap-3">
           {BANQUET_COLUMNS.map(column => (
             <div key={column.key} className="rounded-xl border border-gray-400 bg-gray-50 p-2 space-y-2.5">
@@ -335,10 +340,11 @@ export default async function PrintPage() {
         </div>
         <div className="mt-3 rounded-lg bg-red-700 text-white text-center font-bold py-1.5 tracking-[1em]">舞台</div>
       </Section>
-
-      {/* ⑧ 昼食 席順（管理画面と同じ座席図面）。このページだけ A4 横向きで印刷する（globals.css の @page lunch-landscape） */}
+        ) },
+        { key: 'lunch', title: '昼食 席順（2日目 13:00 伊賀の里もくもく手づくりファーム）', landscape: true, node: (title: string) => (
+      // 昼食 席順（管理画面と同じ座席図面）。このページは A4 横向きで印刷する（globals.css の @page lunch-landscape）
       <div className="print-landscape-page">
-      <Section title="⑧ 昼食 席順（2日目 13:00 伊賀の里もくもく手づくりファーム）">
+      <Section title={title}>
         {(() => {
           const wheelchairUsers = persons.filter(p => p.isWheelchair).length
           const slots = lunchTables.reduce((n, t) => n + t.wheelchairSlots, 0)
@@ -364,19 +370,183 @@ export default async function PrintPage() {
         <p className="mt-1 text-[11px] text-gray-600">♿ のピンクの点線は車椅子のまま座る席、⚠️ は車椅子枠と席の使い方が合っていない席です。</p>
       </Section>
       </div>
+        ) },
+        { key: 'transport', title: '送迎表', node: (title: string) => <TransportPrint title={title} data={transport} /> },
+        { key: 'seating', title: '席レイアウト', landscape: true, node: (title: string) => <SeatingPrint title={title} data={seating} /> },
+      ])}
     </div>
+  )
+}
+
+// ===== 印刷するページの並べ方 =====
+
+// 印刷の並び順（メニューの並び順とは別に固定。滋賀1泊旅行の印刷用まとめの順番を保つ）
+const PRINT_ORDER = ['schedule', 'supplies', 'pickup', 'transport', 'bus', 'rooms', 'teams', 'bathing', 'banquet', 'lunch', 'seating']
+// 同じ番号を使うページ（部屋割りと班分けは「⑤」でひとまとまり）
+const SHARED_NUMBER: Record<string, string> = { teams: 'rooms' }
+const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳'
+
+interface PrintSection {
+  key: string
+  title: string
+  landscape?: boolean // A4 横向きのページ（名前付きページが切り替わるので、前後の改ページは自動）
+  node: (title: string) => ReactNode
+}
+
+function arrangeSections(modules: string[], sections: PrintSection[]) {
+  const list = sections
+    .filter(s => modules.includes(s.key))
+    .sort((a, b) => PRINT_ORDER.indexOf(a.key) - PRINT_ORDER.indexOf(b.key))
+  if (list.length === 0) {
+    return <p className="text-sm text-gray-600">このイベントで印刷できる機能が ON になっていません（管理画面の「イベント管理」で設定します）。</p>
+  }
+  const numbers = new Map<string, string>()
+  let n = 0
+  for (const s of list) {
+    const shared = SHARED_NUMBER[s.key]
+    numbers.set(s.key, shared && numbers.has(shared) ? numbers.get(shared)! : CIRCLED[n++] ?? `(${n})`)
+  }
+  return list.map((s, i) => {
+    const next = list[i + 1]
+    // 縦向きどうしの間だけ改ページを入れる（横向きページの前後は自動で改ページされる）
+    const pageBreak = next && !s.landscape && !next.landscape
+    return (
+      <Fragment key={s.key}>
+        {s.node(`${numbers.get(s.key)} ${s.title}`)}
+        {pageBreak && <PageBreak />}
+      </Fragment>
+    )
+  })
+}
+
+// ===== 送迎表（汎用）: 拠点ごとに枠を並べる =====
+function TransportPrint({ title, data }: { title: string; data: TransportResponse | null }) {
+  if (!data) return null
+  const byId = new Map(data.persons.map(p => [p.id, p]))
+  const membersOf = (slotId: number) =>
+    data.assignments.filter(a => a.slotId === slotId && byId.has(a.personId)).map(a => byId.get(a.personId)!)
+  const unassigned = data.persons.length - data.assignments.filter(a => byId.has(a.personId)).length
+  return (
+    <Section title={title}>
+      {data.sections.length === 0 && <p className="text-[11px] text-gray-500">拠点がまだ登録されていません。</p>}
+      <div className="space-y-3">
+        {data.sections.map(sec => (
+          <div key={sec.id} className="print-avoid-break">
+            <h3 className="font-bold bg-gray-800 text-white px-2 py-1">
+              {sec.name}
+              {sec.time && `　🕗 ${sec.time}`}
+            </h3>
+            {sec.memo && <p className="text-[10px] mt-0.5 whitespace-pre-wrap">{sec.memo}</p>}
+            <div className="grid grid-cols-3 gap-2 mt-1.5">
+              {sec.slots.map(slot => {
+                const members = membersOf(slot.id)
+                const kind = slotKindOf(slot.kind)
+                const over = slot.capacity !== null && members.length > slot.capacity
+                return (
+                  <Box
+                    key={slot.id}
+                    title={`${kind.icon} ${slot.name}${slot.capacity !== null ? `（定員：${slot.capacity}名）` : ''}`}
+                    right={`${members.length}${slot.capacity !== null ? `/${slot.capacity}` : ''}名${over ? ' ⚠️超過' : ''}`}
+                  >
+                    {slot.memo && <p className="text-[10px] mb-1 whitespace-pre-wrap">📝 {slot.memo}</p>}
+                    {members.length === 0 ? (
+                      <p className="text-[10px] text-gray-400">（なし）</p>
+                    ) : (
+                      <ul className="space-y-0.5">
+                        {members.map(p => (
+                          <li key={p.id} className={`border px-1.5 py-0.5 text-[11px] ${personColor(p)}`}>
+                            <div className="truncate">{personLabel(p)}</div>
+                            {p.pickupMemo && <div className="text-[9px] text-gray-700 whitespace-pre-wrap">{p.pickupMemo}</div>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </Box>
+                )
+              })}
+              {sec.slots.length === 0 && <p className="text-[10px] text-gray-400">（枠がありません）</p>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {unassigned > 0 && <p className="text-[10px] mt-2">※ まだ枠に割り当てられていない参加者が {unassigned}名 います（この表には表示していません）。</p>}
+    </Section>
+  )
+}
+
+// ===== 席レイアウト（汎用）: 配置図ごとに A4 横向き1枚。用紙の幅・高さに合わせて縮小する =====
+// 画面のプレビューは A4 縦の印字幅（190mm ≒ 718px）、印刷は A4 横の印字幅 281mm ≒ 1062px・高さ 194mm ≒ 733px から見出し・注記の分（約150px）を引いた高さ
+const PREVIEW_W = 718
+const LANDSCAPE_W = 1062
+const LANDSCAPE_H = 580
+
+function SeatingPrint({ title, data }: { title: string; data: SeatingResponse | null }) {
+  if (!data) return null
+  const byId = new Map(data.persons.map(p => [p.id, p]))
+  if (data.layouts.length === 0) {
+    return (
+      <div className="print-landscape-page">
+        <Section title={title}>
+          <p className="text-[11px] text-gray-500">配置図がまだ登録されていません。</p>
+        </Section>
+      </div>
+    )
+  }
+  const wheelchairUsers = data.persons.filter(p => p.isWheelchair).length
+  return (
+    <>
+      {data.layouts.map(layout => {
+        const seatMap = new Map(
+          data.assignments
+            .filter(a => a.layoutId === layout.id && byId.has(a.personId))
+            .map(a => [`${a.tableId}:${a.seatIndex}`, byId.get(a.personId)!]),
+        )
+        const personAt = (tableId: number, seatIndex: number) => seatMap.get(`${tableId}:${seatIndex}`) ?? null
+        const seatedIds = new Set([...seatMap.values()].map(p => p.id))
+        const slots = layout.tables.reduce((n, t) => n + Math.min(t.wheelchairSlots, t.seats), 0)
+        const mismatches = layout.tables.reduce(
+          (n, t) => n + Array.from({ length: t.seats }, (_, i) => personAt(t.id, i)).filter((p, i) => !!p && p.isWheelchair !== isWheelchairSeat(t, i)).length,
+          0,
+        )
+        const notSeated: SeatPerson[] = data.persons.filter(p => !seatedIds.has(p.id))
+        const printZoom = Math.min(1, LANDSCAPE_W / layout.width, LANDSCAPE_H / layout.height)
+        return (
+          <div key={layout.id} className="print-landscape-page">
+            <Section title={`${title}　${layout.name}`}>
+              <p className="text-[11px] mb-2">
+                着席 {seatedIds.size}/{data.persons.length}名　♿ 車椅子利用 {wheelchairUsers}名 ／ 車椅子枠 {slots}
+                {wheelchairUsers > slots && <b className="ml-1">（{wheelchairUsers - slots}名分不足）</b>}
+                {mismatches > 0 && <b className="ml-1">⚠️ 車椅子枠と合っていない席 {mismatches}</b>}
+              </p>
+              <div className="print:hidden">
+                <SeatingPlanStatic layout={layout} personAt={personAt} zoom={Math.min(1, PREVIEW_W / layout.width)} />
+              </div>
+              <div className="hidden print:block">
+                <SeatingPlanStatic layout={layout} personAt={personAt} zoom={printZoom} />
+              </div>
+              {notSeated.length > 0 && (
+                <p className="mt-1 text-[10px]">
+                  席が決まっていない参加者（{notSeated.length}名）：{sortPersons(notSeated).map(p => p.name).join('、')}
+                </p>
+              )}
+              <p className="mt-1 text-[10px] text-gray-600">ピンクの点線は車椅子枠の席、⚠️ は車椅子の方と席の種類が合っていない席です。</p>
+            </Section>
+          </div>
+        )
+      })}
+    </>
   )
 }
 
 // ===== 表示用の部品 =====
 
-const personColor = (p?: P) =>
+const personColor = (p?: Pick<P, 'isWheelchair' | 'role'>) =>
   !p ? 'bg-white border-gray-300'
     : p.isWheelchair ? 'bg-pink-100 border-pink-400'
     : p.role === 'STAFF' ? 'bg-blue-100 border-blue-300'
     : 'bg-white border-gray-400'
 
-const personLabel = (p: P) => `${p.isWheelchair ? '♿' : ''}${p.name}${p.isFishNG ? '🐟❌' : ''}`
+const personLabel = (p: Pick<P, 'isWheelchair' | 'name' | 'isFishNG'>) => `${p.isWheelchair ? '♿' : ''}${p.name}${p.isFishNG ? '🐟❌' : ''}`
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (

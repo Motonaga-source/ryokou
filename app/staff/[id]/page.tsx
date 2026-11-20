@@ -12,6 +12,10 @@ import BanSectionLabel from '@/components/BanSectionLabel'
 import ChangePersonButton from './ChangePersonButton'
 import { getCurrentEvent } from '@/lib/event'
 import { dayShortLabel } from '@/lib/event-shared'
+import { loadTransport } from '@/lib/transport-server'
+import { slotKindOf } from '@/lib/transport'
+import { loadSeating } from '@/lib/seating-server'
+import { isWheelchairSeat } from '@/lib/seating'
 
 // バスで隣に座る席（最後列 12 は A〜E が横一列）
 const BUS_NEIGHBORS: Record<string, string[]> = { A: ['B'], B: ['A'], C: ['D'], D: ['C'] }
@@ -35,6 +39,8 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
   const event = await getCurrentEvent()
   if (!event) return <p className="p-8">イベントが登録されていません。</p>
   const TRIP_ID = event.id
+  // 選択中のイベントで ON の機能のカードだけを表示する
+  const on = (key: string) => event.modules.includes(key)
 
   const persons = await prisma.person.findMany({
     where: { participations: { some: { tripId: TRIP_ID, status: '参加' } } },
@@ -82,6 +88,65 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
     ])
 
   const pick = (ids: number[]) => sortPersons(ids.map(i => byId.get(i)).filter((p): p is P => !!p))
+  // 並び順をそのまま使う（送迎の枠の順・席の順）
+  const inOrder = (ids: number[]) => ids.map(i => byId.get(i)).filter((p): p is P => !!p)
+
+  // ===== 送迎表（汎用）: 自分の枠と同乗者 =====
+  let transportInfo: {
+    title: string
+    section: string
+    capacity: string
+    slotMemo: string | null
+    myMemo: string | null
+    walk: boolean
+    members: P[]
+  } | null = null
+  if (on('transport')) {
+    const data = await loadTransport(TRIP_ID)
+    const mine = data.assignments.find(a => a.personId === personId)
+    const section = mine && data.sections.find(sec => sec.slots.some(sl => sl.id === mine.slotId))
+    const slot = section?.slots.find(sl => sl.id === mine?.slotId)
+    if (mine && section && slot) {
+      const members = inOrder(data.assignments.filter(a => a.slotId === slot.id).map(a => a.personId))
+      transportInfo = {
+        title: `${slotKindOf(slot.kind).icon} ${slot.name}`,
+        section: `${section.name}${section.time ? `（${section.time}）` : ''}`,
+        capacity: slot.capacity !== null ? `${members.length}/${slot.capacity}名` : `${members.length}名`,
+        slotMemo: slot.memo,
+        myMemo: data.persons.find(p => p.id === personId)?.pickupMemo ?? null,
+        walk: slot.kind === 'walk',
+        members,
+      }
+    }
+  }
+
+  // ===== 席レイアウト（汎用）: 配置図ごとの自分の席と同じテーブルの人 =====
+  let seatingInfo: {
+    layouts: number
+    seats: { layout: string; table: string; seatNo: number; wcSeat: boolean; memo: string | null; members: P[] }[]
+    undecided: string[]
+  } | null = null
+  if (on('seating')) {
+    const data = await loadSeating(TRIP_ID)
+    seatingInfo = { layouts: data.layouts.length, seats: [], undecided: [] }
+    for (const layout of data.layouts) {
+      const mine = data.assignments.find(a => a.layoutId === layout.id && a.personId === personId)
+      const table = mine && layout.tables.find(t => t.id === mine.tableId)
+      if (!mine || !table) {
+        seatingInfo.undecided.push(layout.name)
+        continue
+      }
+      const tableSeats = data.assignments.filter(a => a.tableId === table.id).sort((a, b) => a.seatIndex - b.seatIndex)
+      seatingInfo.seats.push({
+        layout: layout.name,
+        table: table.name,
+        seatNo: mine.seatIndex + 1,
+        wcSeat: isWheelchairSeat(table, mine.seatIndex),
+        memo: table.memo,
+        members: inOrder(tableSeats.map(a => a.personId)),
+      })
+    }
+  }
 
   // ===== 集合・送迎 =====
   let pickupInfo: { area: string; method: string; members: P[] } | null = null
@@ -192,142 +257,208 @@ export default async function StaffRolePage({ params }: { params: Promise<{ id: 
         <ChangePersonButton />
       </div>
 
-      <Card icon="🚗" title="集合・送迎" href="/pickup" linkLabel="送迎を見る">
-        {pickupInfo ? (
-          <>
-            <Main>{pickupInfo.method}</Main>
-            <Sub>{pickupInfo.area}</Sub>
-            <Members label="一緒に移動する人" persons={pickupInfo.members} meId={me.id} />
-          </>
-        ) : <Undecided />}
-      </Card>
+      {on('pickup') && (
+        <Card icon="🚗" title="集合・送迎" href="/pickup" linkLabel="送迎を見る">
+          {pickupInfo ? (
+            <>
+              <Main>{pickupInfo.method}</Main>
+              <Sub>{pickupInfo.area}</Sub>
+              <Members label="一緒に移動する人" persons={pickupInfo.members} meId={me.id} />
+            </>
+          ) : <Undecided />}
+        </Card>
+      )}
 
-      <Card icon="🚌" title="バス座席" href="/bus" linkLabel="座席表を見る">
-        {busInfo ? (
-          <>
-            <Main>{busInfo.seat}</Main>
-            <Members label="隣に座る人" persons={busInfo.neighbors} meId={me.id} empty="隣は空席です" />
-          </>
-        ) : carAssignments.length === 0 && <Undecided />}
-        {carAssignments.map(a => (
-          <div key={a.id} className={busInfo ? 'mt-3 pt-3 border-t border-gray-100' : ''}>
-            <Main>🚙 乗用車「{a.car.name}」（定員{a.car.capacity}名）</Main>
-            <Members label="同乗する人" persons={pick(a.car.assignments.map(x => x.personId))} meId={me.id} />
-          </div>
-        ))}
-      </Card>
-
-      <Card icon="🏨" title="部屋" href="/rooms" linkLabel="部屋割りを見る">
-        {roomAssignments.length === 0 && <Undecided />}
-        {roomAssignments.map(a => (
-          <div key={a.id}>
-            <Main>{roomLabel(a.room.roomNumber)}</Main>
-            <Sub>{a.room.floor}階・{a.room.roomType}</Sub>
-            <Members label="同室のメンバー" persons={pick(a.room.assignments.map(x => x.personId))} meId={me.id} />
-          </div>
-        ))}
-      </Card>
-
-      <Card icon="📋" title="チーム" href="/teams" linkLabel="チームを見る">
-        {teamMemberships.length === 0 && <Undecided />}
-        {teamMemberships.map(m => {
-          const leaderIds = new Set(m.team.members.filter(x => x.isLeader).map(x => x.personId))
-          return (
-            <div key={m.id}>
+      {on('transport') && (
+        <Card icon="🚐" title="送迎（自分の枠と同乗者）" href="/transport" linkLabel="送迎表を見る">
+          {transportInfo ? (
+            <>
               <Main>
-                {m.team.name}
-                {m.isLeader && <span className="ml-2 align-middle text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 rounded-full px-2 py-0.5">★ リーダー</span>}
+                {transportInfo.title}
+                <span className="ml-2 align-middle text-xs font-bold text-gray-600">{transportInfo.capacity}</span>
               </Main>
-              <Members label="同じチームのメンバー" persons={pick(m.team.members.map(x => x.personId))} meId={me.id} leaderIds={leaderIds} />
+              <Sub>📍 {transportInfo.section}</Sub>
+              {transportInfo.slotMemo && <Sub>📝 {transportInfo.slotMemo}</Sub>}
+              {transportInfo.myMemo && (
+                <p className="mt-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 whitespace-pre-wrap">
+                  自分の送迎メモ：{transportInfo.myMemo}
+                </p>
+              )}
+              <Members label={transportInfo.walk ? '一緒に移動する人' : '同乗する人'} persons={transportInfo.members} meId={me.id} />
+            </>
+          ) : <Undecided />}
+        </Card>
+      )}
+      {on('bus') && (
+        <Card icon="🚌" title="バス座席" href="/bus" linkLabel="座席表を見る">
+          {busInfo ? (
+            <>
+              <Main>{busInfo.seat}</Main>
+              <Members label="隣に座る人" persons={busInfo.neighbors} meId={me.id} empty="隣は空席です" />
+            </>
+          ) : carAssignments.length === 0 && <Undecided />}
+          {carAssignments.map(a => (
+            <div key={a.id} className={busInfo ? 'mt-3 pt-3 border-t border-gray-100' : ''}>
+              <Main>🚙 乗用車「{a.car.name}」（定員{a.car.capacity}名）</Main>
+              <Members label="同乗する人" persons={pick(a.car.assignments.map(x => x.personId))} meId={me.id} />
             </div>
-          )
-        })}
-      </Card>
+          ))}
+        </Card>
+      )}
 
-      <Card icon="♨️" title="入浴" href="/bathing" linkLabel="入浴管理を見る">
-        {bathingInfo ? (
-          <>
-            <Main>
-              {bathingInfo.role.icon} {bathingInfo.role.baseLabel}
-              {bathingInfo.role.bath && (
-                <span className={`ml-2 align-middle text-xs font-bold rounded px-1.5 py-0.5 ${BATH_BADGES[bathingInfo.role.bath].className}`}>
-                  {BATH_BADGES[bathingInfo.role.bath].label}
-                </span>
-              )}
+      {on('rooms') && (
+        <Card icon="🏨" title="部屋" href="/rooms" linkLabel="部屋割りを見る">
+          {roomAssignments.length === 0 && <Undecided />}
+          {roomAssignments.map(a => (
+            <div key={a.id}>
+              <Main>{roomLabel(a.room.roomNumber)}</Main>
+              <Sub>{a.room.floor}階・{a.room.roomType}</Sub>
+              <Members label="同室のメンバー" persons={pick(a.room.assignments.map(x => x.personId))} meId={me.id} />
+            </div>
+          ))}
+        </Card>
+      )}
+
+      {on('teams') && (
+        <Card icon="📋" title="チーム" href="/teams" linkLabel="チームを見る">
+          {teamMemberships.length === 0 && <Undecided />}
+          {teamMemberships.map(m => {
+            const leaderIds = new Set(m.team.members.filter(x => x.isLeader).map(x => x.personId))
+            return (
+              <div key={m.id}>
+                <Main>
+                  {m.team.name}
+                  {m.isLeader && <span className="ml-2 align-middle text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 rounded-full px-2 py-0.5">★ リーダー</span>}
+                </Main>
+                <Members label="同じチームのメンバー" persons={pick(m.team.members.map(x => x.personId))} meId={me.id} leaderIds={leaderIds} />
+              </div>
+            )
+          })}
+        </Card>
+      )}
+
+      {on('bathing') && (
+        <Card icon="♨️" title="入浴" href="/bathing" linkLabel="入浴管理を見る">
+          {bathingInfo ? (
+            <>
+              <Main>
+                {bathingInfo.role.icon} {bathingInfo.role.baseLabel}
+                {bathingInfo.role.bath && (
+                  <span className={`ml-2 align-middle text-xs font-bold rounded px-1.5 py-0.5 ${BATH_BADGES[bathingInfo.role.bath].className}`}>
+                    {BATH_BADGES[bathingInfo.role.bath].label}
+                  </span>
+                )}
+                {me.role === 'STAFF' ? (
+                  <span className="ml-2 align-middle text-xs font-bold rounded px-1.5 py-0.5 bg-slate-600 text-white">担当（全ての班）</span>
+                ) : (
+                  <span className="ml-2 align-middle text-sm font-bold text-indigo-700">{bathingInfo.ban ? `${bathingInfo.ban}班` : '班は未設定'}</span>
+                )}
+              </Main>
               {me.role === 'STAFF' ? (
-                <span className="ml-2 align-middle text-xs font-bold rounded px-1.5 py-0.5 bg-slate-600 text-white">担当（全ての班）</span>
+                <>
+                  <Sub>
+                    {bathingInfo.role.bath
+                      ? `${BATH_BADGES[bathingInfo.role.bath].label}に来る全ての利用者を、入浴の順番（班）ごとに表示しています。`
+                      : `${bathingInfo.role.baseLabel}の全ての利用者を、入浴の順番（班）ごとに表示しています。`}
+                  </Sub>
+                  <BanSections users={bathingInfo.users} />
+                </>
               ) : (
-                <span className="ml-2 align-middle text-sm font-bold text-indigo-700">{bathingInfo.ban ? `${bathingInfo.ban}班` : '班は未設定'}</span>
+                <Members label={bathingInfo.ban ? `同じ班（${bathingInfo.ban}班）の利用者` : '同じ役割の利用者'} persons={bathingInfo.sameBan} meId={me.id} />
               )}
-            </Main>
-            {me.role === 'STAFF' ? (
-              <>
-                <Sub>
-                  {bathingInfo.role.bath
-                    ? `${BATH_BADGES[bathingInfo.role.bath].label}に来る全ての利用者を、入浴の順番（班）ごとに表示しています。`
-                    : `${bathingInfo.role.baseLabel}の全ての利用者を、入浴の順番（班）ごとに表示しています。`}
-                </Sub>
-                <BanSections users={bathingInfo.users} />
-              </>
-            ) : (
-              <Members label={bathingInfo.ban ? `同じ班（${bathingInfo.ban}班）の利用者` : '同じ役割の利用者'} persons={bathingInfo.sameBan} meId={me.id} />
-            )}
-            <StaffList
-              label={me.role === 'STAFF' ? '一緒に担当するスタッフ' : '担当スタッフ'}
-              staff={bathingInfo.staff.filter(s => s.person.id !== me.id)}
-            />
-          </>
-        ) : <Undecided />}
-      </Card>
+              <StaffList
+                label={me.role === 'STAFF' ? '一緒に担当するスタッフ' : '担当スタッフ'}
+                staff={bathingInfo.staff.filter(s => s.person.id !== me.id)}
+              />
+            </>
+          ) : <Undecided />}
+        </Card>
+      )}
 
-      <Card icon="🍶" title="宴会" href="/banquet" linkLabel="席順を見る">
-        {banquetInfo ? (
-          <>
-            <Main>{banquetInfo.label}</Main>
-            <Members label="同じテーブルのメンバー" persons={banquetInfo.members} meId={me.id} />
-          </>
-        ) : <Undecided />}
-      </Card>
+      {on('banquet') && (
+        <Card icon="🍶" title="宴会" href="/banquet" linkLabel="席順を見る">
+          {banquetInfo ? (
+            <>
+              <Main>{banquetInfo.label}</Main>
+              <Members label="同じテーブルのメンバー" persons={banquetInfo.members} meId={me.id} />
+            </>
+          ) : <Undecided />}
+        </Card>
+      )}
 
-      <Card icon="🍖" title="昼食（2日目 もくもく手づくりファーム）" href="/lunch" linkLabel="席順を見る">
-        {lunchSeat ? (
-          <>
-            <Main>
-              テーブル{lunchSeat.table.tableNo}
-              {me.isWheelchair && lunchSeat.seatIndex >= lunchSeat.table.wheelchairSlots && (
-                <span className="ml-2 align-middle text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300 rounded-full px-2 py-0.5">⚠️ 椅子への移乗が必要</span>
-              )}
-            </Main>
-            <Sub>
-              {lunchSeat.seatIndex < lunchSeat.table.wheelchairSlots ? '♿ 車椅子枠の席' : '普通の席'}
-              ・定員{lunchSeat.table.capacity}名{lunchSeat.table.wheelchairSlots > 0 && `（車椅子枠${lunchSeat.table.wheelchairSlots}）`}
-            </Sub>
-            <Members label="同じテーブルのメンバー" persons={pick(lunchSeat.table.assignments.map(a => a.personId))} meId={me.id} />
-          </>
-        ) : <Undecided />}
-      </Card>
+      {on('lunch') && (
+        <Card icon="🍖" title="昼食（2日目 もくもく手づくりファーム）" href="/lunch" linkLabel="席順を見る">
+          {lunchSeat ? (
+            <>
+              <Main>
+                テーブル{lunchSeat.table.tableNo}
+                {me.isWheelchair && lunchSeat.seatIndex >= lunchSeat.table.wheelchairSlots && (
+                  <span className="ml-2 align-middle text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300 rounded-full px-2 py-0.5">⚠️ 椅子への移乗が必要</span>
+                )}
+              </Main>
+              <Sub>
+                {lunchSeat.seatIndex < lunchSeat.table.wheelchairSlots ? '♿ 車椅子枠の席' : '普通の席'}
+                ・定員{lunchSeat.table.capacity}名{lunchSeat.table.wheelchairSlots > 0 && `（車椅子枠${lunchSeat.table.wheelchairSlots}）`}
+              </Sub>
+              <Members label="同じテーブルのメンバー" persons={pick(lunchSeat.table.assignments.map(a => a.personId))} meId={me.id} />
+            </>
+          ) : <Undecided />}
+        </Card>
+      )}
 
-      <Card icon="🗓️" title="スケジュール（自分の担当）" href="/schedule" linkLabel="全体を見る">
-        {mySchedules.length === 0 ? (
-          <p className="text-sm text-gray-500">担当者に名前が入っている予定はありません。</p>
-        ) : (
-          <ul className="divide-y divide-gray-100">
-            {mySchedules.map(s => (
-              <li key={s.id} className="py-2 flex gap-3">
-                <div className="shrink-0 w-20 text-xs text-gray-500">
-                  <div>{dayShortLabel(event, s.dayNo)}</div>
-                  <div className="text-sm font-bold text-gray-800">{s.timeLabel}</div>
+      {on('seating') && (
+        <Card icon="🪑" title="席（自分の席と同じテーブルの人）" href="/seating" linkLabel="席レイアウトを見る">
+          {!seatingInfo || seatingInfo.layouts === 0 ? <Undecided /> : (
+            <div className="space-y-3">
+              {seatingInfo.seats.map((seat, i) => (
+                <div key={seat.layout} className={i > 0 ? 'pt-3 border-t border-gray-100' : ''}>
+                  {seatingInfo.layouts > 1 && <p className="text-xs font-semibold text-rose-700">{seat.layout}</p>}
+                  <Main>
+                    {seat.table}・{seat.seatNo}番の席
+                    {me.isWheelchair && !seat.wcSeat && (
+                      <span className="ml-2 align-middle text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300 rounded-full px-2 py-0.5">⚠️ 車椅子枠ではない席</span>
+                    )}
+                  </Main>
+                  <Sub>
+                    {seat.wcSeat ? '♿ 車椅子枠の席' : '普通の席'}
+                    {seat.memo && `・${seat.memo}`}
+                  </Sub>
+                  <Members label="同じテーブルの人" persons={seat.members} meId={me.id} />
                 </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-bold text-gray-800">{s.location}</div>
-                  {s.description && <div className="text-xs text-gray-600 whitespace-pre-wrap mt-0.5">{s.description}</div>}
-                  <div className="text-xs text-blue-600 mt-0.5">👤 {s.assignedTo}</div>
+              ))}
+              {seatingInfo.undecided.map(name => (
+                <div key={name} className={seatingInfo.seats.length > 0 ? 'pt-3 border-t border-gray-100' : ''}>
+                  {seatingInfo.layouts > 1 && <p className="text-xs font-semibold text-rose-700">{name}</p>}
+                  <Undecided />
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+      {on('schedule') && (
+        <Card icon="🗓️" title="スケジュール（自分の担当）" href="/schedule" linkLabel="全体を見る">
+          {mySchedules.length === 0 ? (
+            <p className="text-sm text-gray-500">担当者に名前が入っている予定はありません。</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {mySchedules.map(s => (
+                <li key={s.id} className="py-2 flex gap-3">
+                  <div className="shrink-0 w-20 text-xs text-gray-500">
+                    <div>{dayShortLabel(event, s.dayNo)}</div>
+                    <div className="text-sm font-bold text-gray-800">{s.timeLabel}</div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-gray-800">{s.location}</div>
+                    {s.description && <div className="text-xs text-gray-600 whitespace-pre-wrap mt-0.5">{s.description}</div>}
+                    <div className="text-xs text-blue-600 mt-0.5">👤 {s.assignedTo}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
     </div>
   )
 }
